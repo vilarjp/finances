@@ -56,6 +56,18 @@ Theme tokens are centralized in `frontend/src/app/styles/theme.css`. See
 `frontend/THEME.md` for changing the light/dark palette, font family, border
 radius, finance colors, chart colors, and shadcn/Tailwind mappings.
 
+## Backend
+
+The backend scaffold lives in `backend/` and uses Fastify, TypeScript, Zod, and
+the official MongoDB driver. Copy `backend/.env.example` to `backend/.env` for
+local overrides; the default MongoDB URI matches the local replica-set compose
+service above.
+
+```sh
+pnpm --filter @finances/backend dev
+pnpm --filter @finances/backend test
+```
+
 ## Project Layout
 
 ```text
