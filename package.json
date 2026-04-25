@@ -1,0 +1,24 @@
+{
+  "name": "personal-finance-system",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Personal Finance System V1 workspace.",
+  "packageManager": "pnpm@10.33.2",
+  "engines": {
+    "node": ">=24.15.0 <25",
+    "pnpm": ">=10.33.2 <11"
+  },
+  "scripts": {
+    "format": "prettier --check \"**/*.{cjs,css,html,js,json,jsx,md,mjs,ts,tsx,yml,yaml}\"",
+    "format:write": "prettier --write \"**/*.{cjs,css,html,js,json,jsx,md,mjs,ts,tsx,yml,yaml}\"",
+    "lint": "pnpm --recursive --if-present lint",
+    "typecheck": "pnpm --recursive --if-present typecheck",
+    "test": "pnpm --recursive --if-present test",
+    "build": "pnpm --recursive --if-present build",
+    "dev": "pnpm --recursive --parallel --if-present dev",
+    "audit": "pnpm audit --audit-level moderate"
+  },
+  "devDependencies": {
+    "prettier": "3.8.3"
+  }
+}
