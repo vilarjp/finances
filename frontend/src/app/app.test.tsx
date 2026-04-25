@@ -17,4 +17,7 @@ it("renders the application shell with public navigation", async () => {
     "href",
     "/sign-up",
   );
+  expect(
+    within(primaryNavigation).getByRole("group", { name: "Theme preference" }),
+  ).toBeInTheDocument();
 });

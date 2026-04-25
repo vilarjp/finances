@@ -50,6 +50,12 @@ pnpm dev
 when `frontend/` and `backend/` are scaffolded. `format` checks repository files
 with the shared Prettier configuration.
 
+## Frontend Theme
+
+Theme tokens are centralized in `frontend/src/app/styles/theme.css`. See
+`frontend/THEME.md` for changing the light/dark palette, font family, border
+radius, finance colors, chart colors, and shadcn/Tailwind mappings.
+
 ## Project Layout
 
 ```text
