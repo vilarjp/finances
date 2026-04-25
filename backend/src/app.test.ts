@@ -9,6 +9,7 @@ describe("createApp", () => {
         NODE_ENV: "test",
       },
       logger: false,
+      database: false,
     });
 
     const response = await app.inject({
