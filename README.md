@@ -62,6 +62,9 @@ The backend scaffold lives in `backend/` and uses Fastify, TypeScript, Zod, and
 the official MongoDB driver. Copy `backend/.env.example` to `backend/.env` for
 local overrides; the default MongoDB URI matches the local replica-set compose
 service above.
+Backend startup connects to `MONGODB_URI`, creates the planned collection
+indexes, and closes the MongoDB client during Fastify shutdown. Backend
+integration tests use an in-memory single-node replica set.
 
 ```sh
 pnpm --filter @finances/backend dev
