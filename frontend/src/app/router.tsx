@@ -2,6 +2,7 @@ import { Home, LogIn, UserPlus } from "lucide-react";
 import { BrowserRouter, Link, Navigate, Route, Routes } from "react-router-dom";
 
 import { useAuth } from "@app/providers/auth-context";
+import { ThemeModeToggle } from "@features/theme-toggle";
 import { HomePage } from "@pages/home";
 import { LoginPage } from "@pages/login";
 import { NotFoundPage } from "@pages/not-found";
@@ -14,13 +15,14 @@ function PublicNavigation() {
 
   return (
     <header className="border-border bg-background/95 supports-[backdrop-filter]:bg-background/70 sticky top-0 z-10 border-b backdrop-blur">
-      <div className="mx-auto flex min-h-16 w-full max-w-6xl items-center justify-between gap-3 px-4">
+      <div className="mx-auto flex min-h-16 w-full max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:flex-nowrap">
         <Link className="flex items-center gap-2 font-semibold" to="/">
           <Home aria-hidden="true" className="size-5 text-primary" />
           <span>Personal Finance</span>
         </Link>
-        <nav aria-label="Primary" className="flex items-center gap-2">
+        <nav aria-label="Primary" className="flex flex-wrap items-center justify-end gap-2">
           <span className="hidden text-sm text-muted-foreground sm:inline">{userLabel}</span>
+          <ThemeModeToggle />
           <Button asChild size="sm" variant="ghost">
             <Link to="/login">
               <LogIn aria-hidden="true" />
