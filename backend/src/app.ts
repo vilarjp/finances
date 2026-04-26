@@ -13,6 +13,7 @@ import { categoriesRoutes } from "./modules/categories/categories.routes.js";
 import { healthRoutes } from "./modules/health/health.routes.js";
 import { recurringTagsRoutes } from "./modules/recurring-tags/recurring-tags.routes.js";
 import { recordsRoutes } from "./modules/records/records.routes.js";
+import { reportsRoutes } from "./modules/reports/reports.routes.js";
 import { createLoggerOptions } from "./shared/logger.js";
 
 declare module "fastify" {
@@ -90,6 +91,9 @@ export async function createApp(options: CreateAppOptions = {}): Promise<Fastify
     });
     await app.register(recordsRoutes, {
       prefix: "/api/records",
+    });
+    await app.register(reportsRoutes, {
+      prefix: "/api/reports",
     });
   }
 
