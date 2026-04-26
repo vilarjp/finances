@@ -6,7 +6,10 @@ import { parseEnv } from "./config/env.js";
 import { connectToDatabase, ensureDatabaseIndexes, type DatabaseConnection } from "./db/index.js";
 import { registerErrorHandler } from "./middleware/error-handler.js";
 import { createRequestIdGenerator, requestIdMiddleware } from "./middleware/request-id.js";
+import { registerAuthMiddleware } from "./modules/auth/auth.middleware.js";
 import { authRoutes } from "./modules/auth/auth.routes.js";
+import { AuthService } from "./modules/auth/auth.service.js";
+import { categoriesRoutes } from "./modules/categories/categories.routes.js";
 import { healthRoutes } from "./modules/health/health.routes.js";
 import { createLoggerOptions } from "./shared/logger.js";
 
@@ -63,6 +66,9 @@ export async function createApp(options: CreateAppOptions = {}): Promise<Fastify
     }
 
     app.decorate("financeDb", financeDb);
+    const authService = new AuthService(financeDb, config);
+
+    registerAuthMiddleware(app, authService);
     app.addHook("onClose", async () => {
       if (closeOnAppClose) {
         await financeDb.close();
@@ -71,7 +77,11 @@ export async function createApp(options: CreateAppOptions = {}): Promise<Fastify
 
     await app.register(authRoutes, {
       prefix: "/api/auth",
+      authService,
       config,
+    });
+    await app.register(categoriesRoutes, {
+      prefix: "/api/categories",
     });
   }
 
