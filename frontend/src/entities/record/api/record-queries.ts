@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import type { QueryClient } from "@tanstack/react-query";
 
+import { reportsQueryKey } from "@entities/report/api/report-queries";
 import { apiGet } from "@shared/api/http-client";
 
 import type { FinanceRecord } from "../model/types";
@@ -15,7 +16,6 @@ type RecordsResponse = {
 };
 
 export const recordsQueryKey = ["records"] as const;
-export const reportsQueryKey = ["reports"] as const;
 
 export function recordsRangeQueryKey(range: RecordsRange) {
   return [...recordsQueryKey, range.from, range.to] as const;

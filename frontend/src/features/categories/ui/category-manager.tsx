@@ -4,6 +4,7 @@ import { useId, useState, type FormEvent } from "react";
 
 import { categoriesQueryKey, useCategoriesQuery } from "@entities/category";
 import type { Category } from "@entities/category";
+import { invalidateFinanceData } from "@entities/record";
 import { cn } from "@shared/lib/utils";
 import { Button } from "@shared/ui/button";
 import { Input } from "@shared/ui/input";
@@ -131,9 +132,12 @@ export function CategoryManager({
   const [editError, setEditError] = useState("");
 
   const invalidateCategories = async () => {
-    await queryClient.invalidateQueries({
-      queryKey: categoriesQueryKey,
-    });
+    await Promise.all([
+      queryClient.invalidateQueries({
+        queryKey: categoriesQueryKey,
+      }),
+      invalidateFinanceData(queryClient),
+    ]);
   };
 
   const setSelectedCategory = (categoryId: string) => {

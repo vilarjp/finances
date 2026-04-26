@@ -148,7 +148,7 @@ function CompactRecordSection({
 
 function DesktopTable({ emptyMessage, rows, title }: FinanceTableProps) {
   return (
-    <div className="overflow-x-auto rounded-lg border bg-card text-card-foreground shadow-sm">
+    <div className="hidden overflow-x-auto rounded-lg border bg-card text-card-foreground shadow-sm md:block">
       <table className="min-w-[980px] table-fixed text-left text-sm" aria-label={title}>
         <caption className="sr-only">{title}</caption>
         <colgroup>
