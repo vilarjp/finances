@@ -2,13 +2,13 @@ import { useQuery } from "@tanstack/react-query";
 import type { PropsWithChildren } from "react";
 import { useMemo } from "react";
 
-import { fetchCurrentUser } from "@entities/user";
+import { currentUserQueryKey, fetchCurrentUser } from "@entities/user";
 
 import { AuthContext } from "./auth-context";
 
 export function AuthProvider({ children }: PropsWithChildren) {
   const currentUserQuery = useQuery({
-    queryKey: ["auth", "current-user"],
+    queryKey: currentUserQueryKey,
     queryFn: fetchCurrentUser,
     retry: false,
     staleTime: 60_000,
