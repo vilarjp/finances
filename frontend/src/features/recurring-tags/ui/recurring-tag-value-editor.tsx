@@ -8,6 +8,7 @@ import {
   type RecurringTag,
   type RecurringTagPropagation,
 } from "@entities/recurring-tag";
+import { invalidateFinanceData } from "@entities/record";
 import { cn } from "@shared/lib/utils";
 import { formatMoneyCents } from "@shared/lib/money";
 import { Button } from "@shared/ui/button";
@@ -120,9 +121,12 @@ export function RecurringTagValueEditor({
       : (selectedTag?.name ?? "");
 
   const invalidateRecurringTags = async () => {
-    await queryClient.invalidateQueries({
-      queryKey: recurringTagsQueryKey,
-    });
+    await Promise.all([
+      queryClient.invalidateQueries({
+        queryKey: recurringTagsQueryKey,
+      }),
+      invalidateFinanceData(queryClient),
+    ]);
   };
 
   const updateValue = (nextValue: RecurringTagValueEditorValue) => {
