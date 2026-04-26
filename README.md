@@ -65,6 +65,21 @@ service above.
 Backend startup connects to `MONGODB_URI`, creates the planned collection
 indexes, and closes the MongoDB client during Fastify shutdown. Backend
 integration tests use an in-memory single-node replica set.
+`COOKIE_SECRET` is required in every environment because auth cookies are signed
+and access, refresh, and CSRF token signatures are derived from that secret.
+
+Auth endpoints are mounted under `/api/auth`:
+
+- `POST /signup`
+- `POST /login`
+- `POST /logout`
+- `POST /refresh`
+- `GET /csrf`
+- `GET /me`
+
+The auth cookies use the approved `__Host-finance_access` and
+`__Host-finance_refresh` names with `Path=/`, httpOnly, SameSite=Lax, and Secure
+in production.
 
 ```sh
 pnpm --filter @finances/backend dev

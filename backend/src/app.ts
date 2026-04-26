@@ -6,6 +6,7 @@ import { parseEnv } from "./config/env.js";
 import { connectToDatabase, ensureDatabaseIndexes, type DatabaseConnection } from "./db/index.js";
 import { registerErrorHandler } from "./middleware/error-handler.js";
 import { createRequestIdGenerator, requestIdMiddleware } from "./middleware/request-id.js";
+import { authRoutes } from "./modules/auth/auth.routes.js";
 import { healthRoutes } from "./modules/health/health.routes.js";
 import { createLoggerOptions } from "./shared/logger.js";
 
@@ -38,7 +39,7 @@ export async function createApp(options: CreateAppOptions = {}): Promise<Fastify
   });
 
   await app.register(helmet);
-  await app.register(cookie, config.cookieSecret ? { secret: config.cookieSecret } : {});
+  await app.register(cookie, { secret: config.cookieSecret });
   requestIdMiddleware(app);
 
   registerErrorHandler(app);
@@ -66,6 +67,11 @@ export async function createApp(options: CreateAppOptions = {}): Promise<Fastify
       if (closeOnAppClose) {
         await financeDb.close();
       }
+    });
+
+    await app.register(authRoutes, {
+      prefix: "/api/auth",
+      config,
     });
   }
 

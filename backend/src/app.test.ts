@@ -7,6 +7,7 @@ describe("createApp", () => {
     const app = await createApp({
       env: {
         NODE_ENV: "test",
+        COOKIE_SECRET: "test-cookie-secret-that-is-long-enough",
       },
       logger: false,
       database: false,
