@@ -295,3 +295,25 @@ export async function apiPost<TData>(
     method: "POST",
   });
 }
+
+export async function apiPatch<TData>(
+  path: string,
+  body?: unknown,
+  options: Omit<ApiRequestOptions, "body" | "method"> = {},
+): Promise<ApiResult<TData> | ApiEmptyResult> {
+  return apiRequest<TData>(path, {
+    ...options,
+    body,
+    method: "PATCH",
+  });
+}
+
+export async function apiDelete<TData>(
+  path: string,
+  options: Omit<ApiRequestOptions, "body" | "method"> = {},
+): Promise<ApiResult<TData> | ApiEmptyResult> {
+  return apiRequest<TData>(path, {
+    ...options,
+    method: "DELETE",
+  });
+}
