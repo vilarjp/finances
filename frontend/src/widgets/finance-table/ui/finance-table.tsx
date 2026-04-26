@@ -1,5 +1,5 @@
 import { ChevronDown } from "lucide-react";
-import { useId, useState } from "react";
+import { useId, useState, type ReactNode } from "react";
 
 import { RecordCell } from "@entities/record";
 import type { FinanceRow, ReportRecord, ReportRecordValue } from "@entities/report";
@@ -8,24 +8,29 @@ import { cn } from "@shared/lib/utils";
 
 type FinanceTableProps = {
   className?: string;
+  dayActions?: (row: FinanceRow) => ReactNode;
   emptyMessage?: string;
+  recordActions?: (record: ReportRecord, row: FinanceRow) => ReactNode;
   rows: FinanceRow[];
   title: string;
 };
 
 type RecordGroupProps = {
   emptyMessage: string;
+  getRecordActions?: (record: ReportRecord) => ReactNode;
   records: ReportRecord[];
   totalAmountCents: number;
 };
 
 type FinanceTableRecordProps = {
+  actions?: ReactNode;
   defaultExpanded?: boolean;
   record: ReportRecord;
 };
 
 type CompactRecordSectionProps = {
   emptyMessage: string;
+  getRecordActions?: (record: ReportRecord) => ReactNode;
   label: string;
   records: ReportRecord[];
   totalAmountCents: number;
@@ -59,7 +64,7 @@ function getValueMetadata(value: ReportRecordValue) {
   return metadata.join(" · ");
 }
 
-function FinanceTableRecord({ defaultExpanded = false, record }: FinanceTableRecordProps) {
+function FinanceTableRecord({ actions, defaultExpanded = false, record }: FinanceTableRecordProps) {
   const description = getRecordDescription(record);
   const valuesId = useId();
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
@@ -67,6 +72,7 @@ function FinanceTableRecord({ defaultExpanded = false, record }: FinanceTableRec
   return (
     <div className="grid gap-2">
       <RecordCell record={record} />
+      {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
       <div className="rounded-md border bg-background/70 px-3 py-2 text-sm">
         <button
           aria-controls={valuesId}
@@ -100,7 +106,12 @@ function FinanceTableRecord({ defaultExpanded = false, record }: FinanceTableRec
   );
 }
 
-function RecordGroup({ emptyMessage, records, totalAmountCents }: RecordGroupProps) {
+function RecordGroup({
+  emptyMessage,
+  getRecordActions,
+  records,
+  totalAmountCents,
+}: RecordGroupProps) {
   return (
     <div className="grid min-w-0 gap-2">
       <p className="text-xs font-medium text-muted-foreground">
@@ -108,7 +119,12 @@ function RecordGroup({ emptyMessage, records, totalAmountCents }: RecordGroupPro
       </p>
       {records.length > 0 ? (
         records.map((record) => (
-          <FinanceTableRecord defaultExpanded key={record.id} record={record} />
+          <FinanceTableRecord
+            actions={getRecordActions?.(record)}
+            defaultExpanded
+            key={record.id}
+            record={record}
+          />
         ))
       ) : (
         <p className="rounded-md border border-dashed px-3 py-2 text-sm text-muted-foreground">
@@ -121,6 +137,7 @@ function RecordGroup({ emptyMessage, records, totalAmountCents }: RecordGroupPro
 
 function CompactRecordSection({
   emptyMessage,
+  getRecordActions,
   label,
   records,
   totalAmountCents,
@@ -136,7 +153,13 @@ function CompactRecordSection({
         <span className="text-sm font-medium">{formatMoneyCents(totalAmountCents)}</span>
       </div>
       {records.length > 0 ? (
-        records.map((record) => <FinanceTableRecord key={record.id} record={record} />)
+        records.map((record) => (
+          <FinanceTableRecord
+            actions={getRecordActions?.(record)}
+            key={record.id}
+            record={record}
+          />
+        ))
       ) : (
         <p className="rounded-md border border-dashed px-3 py-2 text-sm text-muted-foreground">
           {emptyMessage}
@@ -146,7 +169,7 @@ function CompactRecordSection({
   );
 }
 
-function DesktopTable({ emptyMessage, rows, title }: FinanceTableProps) {
+function DesktopTable({ dayActions, emptyMessage, recordActions, rows, title }: FinanceTableProps) {
   return (
     <div className="hidden overflow-x-auto rounded-lg border bg-card text-card-foreground shadow-sm md:block">
       <table className="min-w-[980px] table-fixed text-left text-sm" aria-label={title}>
@@ -176,10 +199,14 @@ function DesktopTable({ emptyMessage, rows, title }: FinanceTableProps) {
               >
                 <th className="align-top px-4 py-4 font-semibold" scope="row">
                   <time dateTime={row.date}>{row.date}</time>
+                  {dayActions ? (
+                    <div className="mt-3 flex flex-wrap gap-2">{dayActions(row)}</div>
+                  ) : null}
                 </th>
                 <td aria-label={`Income records for ${row.date}`} className="align-top px-4 py-4">
                   <RecordGroup
                     emptyMessage="No income records"
+                    getRecordActions={(record) => recordActions?.(record, row)}
                     records={row.incomeRecords}
                     totalAmountCents={row.incomeTotalCents}
                   />
@@ -190,6 +217,7 @@ function DesktopTable({ emptyMessage, rows, title }: FinanceTableProps) {
                 >
                   <RecordGroup
                     emptyMessage="No expense records"
+                    getRecordActions={(record) => recordActions?.(record, row)}
                     records={row.fixedExpenseRecords}
                     totalAmountCents={row.fixedExpenseTotalCents}
                   />
@@ -200,6 +228,7 @@ function DesktopTable({ emptyMessage, rows, title }: FinanceTableProps) {
                 >
                   <RecordGroup
                     emptyMessage="No daily records"
+                    getRecordActions={(record) => recordActions?.(record, row)}
                     records={row.dailyExpenseRecords}
                     totalAmountCents={row.dailyExpenseTotalCents}
                   />
@@ -228,7 +257,12 @@ function DesktopTable({ emptyMessage, rows, title }: FinanceTableProps) {
   );
 }
 
-function CompactRows({ emptyMessage, rows }: Pick<FinanceTableProps, "emptyMessage" | "rows">) {
+function CompactRows({
+  dayActions,
+  emptyMessage,
+  recordActions,
+  rows,
+}: Pick<FinanceTableProps, "dayActions" | "emptyMessage" | "recordActions" | "rows">) {
   if (rows.length === 0) {
     return (
       <div className="rounded-lg border border-dashed bg-card p-5 text-sm text-muted-foreground">
@@ -254,6 +288,9 @@ function CompactRows({ emptyMessage, rows }: Pick<FinanceTableProps, "emptyMessa
               <time className="mt-1 block text-base font-semibold" dateTime={row.date}>
                 {row.date}
               </time>
+              {dayActions ? (
+                <div className="mt-3 flex flex-wrap gap-2">{dayActions(row)}</div>
+              ) : null}
             </div>
             <div className="text-right">
               <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
@@ -271,18 +308,21 @@ function CompactRows({ emptyMessage, rows }: Pick<FinanceTableProps, "emptyMessa
           </div>
           <CompactRecordSection
             emptyMessage="No income records"
+            getRecordActions={(record) => recordActions?.(record, row)}
             label="Income"
             records={row.incomeRecords}
             totalAmountCents={row.incomeTotalCents}
           />
           <CompactRecordSection
             emptyMessage="No expense records"
+            getRecordActions={(record) => recordActions?.(record, row)}
             label="Expenses"
             records={row.fixedExpenseRecords}
             totalAmountCents={row.fixedExpenseTotalCents}
           />
           <CompactRecordSection
             emptyMessage="No daily records"
+            getRecordActions={(record) => recordActions?.(record, row)}
             label="Daily"
             records={row.dailyExpenseRecords}
             totalAmountCents={row.dailyExpenseTotalCents}
@@ -295,14 +335,27 @@ function CompactRows({ emptyMessage, rows }: Pick<FinanceTableProps, "emptyMessa
 
 export function FinanceTable({
   className,
+  dayActions,
   emptyMessage = "No finance rows yet.",
+  recordActions,
   rows,
   title,
 }: FinanceTableProps) {
   return (
     <section className={cn("grid gap-3", className)} aria-label={title}>
-      <DesktopTable emptyMessage={emptyMessage} rows={rows} title={title} />
-      <CompactRows emptyMessage={emptyMessage} rows={rows} />
+      <DesktopTable
+        dayActions={dayActions}
+        emptyMessage={emptyMessage}
+        recordActions={recordActions}
+        rows={rows}
+        title={title}
+      />
+      <CompactRows
+        dayActions={dayActions}
+        emptyMessage={emptyMessage}
+        recordActions={recordActions}
+        rows={rows}
+      />
     </section>
   );
 }

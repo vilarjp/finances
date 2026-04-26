@@ -1,7 +1,7 @@
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
 
-import type { FinanceRow, HomeReport } from "@entities/report";
+import type { FinanceRow, HomeReport, MonthlyReport } from "@entities/report";
 
 function buildEmptyFinanceRow(date: string): FinanceRow {
   return {
@@ -36,6 +36,13 @@ function buildDefaultHomeReport(): HomeReport {
   };
 }
 
+function buildDefaultMonthlyReport(): MonthlyReport {
+  return {
+    month: "2026-04",
+    rows: [],
+  };
+}
+
 export const server = setupServer(
   http.get("*/api/auth/me", () =>
     HttpResponse.json({ message: "Unauthenticated" }, { status: 401 }),
@@ -46,4 +53,5 @@ export const server = setupServer(
   http.get("*/api/recurring-tags", () => HttpResponse.json({ recurringTags: [] })),
   http.get("*/api/records", () => HttpResponse.json({ records: [] })),
   http.get("*/api/reports/home", () => HttpResponse.json(buildDefaultHomeReport())),
+  http.get("*/api/reports/month", () => HttpResponse.json(buildDefaultMonthlyReport())),
 );
