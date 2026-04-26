@@ -1,8 +1,11 @@
 export {
   fetchHomeReport,
+  fetchMonthlyReport,
   homeReportQueryKey,
+  monthlyReportQueryKey,
   reportsQueryKey,
   useHomeReportQuery,
+  useMonthlyReportQuery,
 } from "./api/report-queries";
 export type {
   CategoryBreakdownItem,

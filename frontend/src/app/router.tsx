@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Home, LogIn, LogOut, UserPlus } from "lucide-react";
+import { CalendarDays, Home, LogIn, LogOut, UserPlus } from "lucide-react";
 import {
   BrowserRouter,
   Link,
@@ -17,6 +17,7 @@ import { logout } from "@features/auth";
 import { ThemeModeToggle } from "@features/theme-toggle";
 import { HomePage } from "@pages/home";
 import { LoginPage } from "@pages/login";
+import { MonthlyPage } from "@pages/monthly";
 import { NotFoundPage } from "@pages/not-found";
 import { SignUpPage } from "@pages/sign-up";
 import { Button } from "@shared/ui/button";
@@ -45,16 +46,24 @@ function AppNavigation() {
           <span className="hidden text-sm text-muted-foreground sm:inline">{userLabel}</span>
           <ThemeModeToggle />
           {user ? (
-            <Button
-              disabled={logoutMutation.isPending}
-              onClick={() => logoutMutation.mutate()}
-              size="sm"
-              type="button"
-              variant="ghost"
-            >
-              <LogOut aria-hidden="true" />
-              Logout
-            </Button>
+            <>
+              <Button asChild size="sm" variant="ghost">
+                <Link to="/monthly">
+                  <CalendarDays aria-hidden="true" />
+                  Monthly
+                </Link>
+              </Button>
+              <Button
+                disabled={logoutMutation.isPending}
+                onClick={() => logoutMutation.mutate()}
+                size="sm"
+                type="button"
+                variant="ghost"
+              >
+                <LogOut aria-hidden="true" />
+                Logout
+              </Button>
+            </>
           ) : (
             <>
               <Button asChild size="sm" variant="ghost">
@@ -124,6 +133,7 @@ export function AppRoutes() {
       <Routes>
         <Route element={<RequireAuth />}>
           <Route element={<HomePage />} path="/" />
+          <Route element={<MonthlyPage />} path="/monthly" />
         </Route>
         <Route element={<PublicOnlyRoute />}>
           <Route element={<LoginPage />} path="/login" />

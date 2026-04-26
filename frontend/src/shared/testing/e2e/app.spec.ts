@@ -93,6 +93,47 @@ const homeReport = {
   },
 };
 
+const monthlyReport = {
+  month: "2024-02",
+  rows: [
+    {
+      date: "2024-02-14",
+      incomeRecords: [
+        {
+          id: "record-consulting",
+          effectiveAt: "2024-02-14T12:00:00.000Z",
+          financeDate: "2024-02-14",
+          financeMonth: "2024-02",
+          type: "income",
+          expenseKind: null,
+          description: "Consulting",
+          fontColor: "#111827",
+          backgroundColor: "#DCFCE7",
+          totalAmountCents: 250000,
+          createdAt: "2024-02-14T12:00:00.000Z",
+          updatedAt: "2024-02-14T12:00:00.000Z",
+          values: [
+            {
+              id: "value-consulting",
+              label: "Client work",
+              amountCents: 250000,
+              sortOrder: 0,
+              createdAt: "2024-02-14T12:00:00.000Z",
+              updatedAt: "2024-02-14T12:00:00.000Z",
+            },
+          ],
+        },
+      ],
+      fixedExpenseRecords: [],
+      dailyExpenseRecords: [],
+      incomeTotalCents: 250000,
+      fixedExpenseTotalCents: 0,
+      dailyExpenseTotalCents: 0,
+      balanceCents: 250000,
+    },
+  ],
+};
+
 async function mockSignedInHome(page: Page) {
   await page.route("**/api/auth/me", async (route) => {
     await route.fulfill({
@@ -134,6 +175,45 @@ async function mockSignedInHome(page: Page) {
     await route.fulfill({
       contentType: "application/json",
       json: { records: [] },
+    });
+  });
+}
+
+async function mockSignedInMonthly(page: Page) {
+  await page.route("**/api/auth/me", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      json: {
+        user: {
+          id: "user-1",
+          name: "Ada Lovelace",
+          email: "ada@example.com",
+        },
+      },
+    });
+  });
+  await page.route("**/api/auth/csrf", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      json: { csrfToken: "test-csrf-token" },
+    });
+  });
+  await page.route("**/api/categories", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      json: { categories: [] },
+    });
+  });
+  await page.route("**/api/recurring-tags", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      json: { recurringTags: [] },
+    });
+  });
+  await page.route("**/api/reports/month**", async (route) => {
+    await route.fulfill({
+      contentType: "application/json",
+      json: monthlyReport,
     });
   });
 }
@@ -197,6 +277,38 @@ test("keeps signed-in home dashboard usable on mobile", async ({ page }) => {
     "aria-roledescription",
     "carousel",
   );
+  await expect
+    .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+    .toBeLessThanOrEqual(390);
+});
+
+test("renders signed-in monthly view on desktop", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await mockSignedInMonthly(page);
+  await page.goto("/monthly?month=2024-02");
+
+  await expect(page.getByRole("heading", { name: "Monthly view" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "February 2024" })).toBeVisible();
+  await expect(page.getByRole("table", { name: "Monthly rows for February 2024" })).toBeVisible();
+  await expect(page.getByText("Consulting").first()).toBeVisible();
+  await expect(page.getByRole("button", { name: "Previous month" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Next month" })).toBeVisible();
+  await expect
+    .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
+    .toBeLessThanOrEqual(1280);
+});
+
+test("keeps signed-in monthly view usable on mobile", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await mockSignedInMonthly(page);
+  await page.goto("/monthly?month=2024-02");
+
+  await expect(page.getByRole("heading", { name: "Monthly view" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Monthly rows for February 2024" })).toBeVisible();
+  await expect(
+    page.getByRole("group", { name: "Compact finance row for 2024-02-29" }),
+  ).toBeAttached();
+  await expect(page.getByRole("region", { name: "Selected day actions" })).toBeVisible();
   await expect
     .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
     .toBeLessThanOrEqual(390);
