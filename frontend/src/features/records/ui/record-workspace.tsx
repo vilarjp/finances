@@ -9,6 +9,7 @@ import {
   useRecordsQuery,
   type FinanceRecord,
 } from "@entities/record";
+import { getApiErrorMessage } from "@shared/api/errors";
 import { formatFinanceDate } from "@shared/lib/date";
 import { Button } from "@shared/ui/button";
 import { Input } from "@shared/ui/input";
@@ -45,11 +46,7 @@ function getCurrentMonthRange() {
 }
 
 function getErrorMessage(error: unknown) {
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  return "Record request failed.";
+  return getApiErrorMessage(error, "Record request failed.");
 }
 
 function getCreateRecordRequestId(state: unknown) {

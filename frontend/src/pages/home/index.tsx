@@ -29,6 +29,7 @@ import {
   type RecurringTagValueEditorValue,
 } from "@features/recurring-tags";
 import { RecordWorkspace } from "@features/records";
+import { getApiErrorMessage } from "@shared/api/errors";
 import { formatFinanceDate } from "@shared/lib/date";
 import { formatMoneyCents } from "@shared/lib/money";
 import { cn } from "@shared/lib/utils";
@@ -491,9 +492,7 @@ export function HomePage() {
 
       {homeReportQuery.isError ? (
         <p role="alert" className="text-sm text-destructive">
-          {homeReportQuery.error instanceof Error
-            ? homeReportQuery.error.message
-            : "Home report request failed."}
+          {getApiErrorMessage(homeReportQuery.error, "Home report request failed.")}
         </p>
       ) : null}
 

@@ -2,6 +2,7 @@ import type { ObjectId } from "mongodb";
 
 import type { DatabaseConnection } from "../../db/index.js";
 import { HttpError, notFoundError } from "../../shared/errors.js";
+import { createNoopLogger, type AppLogger } from "../../shared/logger.js";
 import {
   CategoriesRepository,
   isDuplicateKeyError,
@@ -24,7 +25,10 @@ function duplicateCategoryNameError() {
 export class CategoriesService {
   private readonly repository: CategoriesRepository;
 
-  constructor(connection: DatabaseConnection) {
+  constructor(
+    connection: DatabaseConnection,
+    private readonly logger: AppLogger = createNoopLogger(),
+  ) {
     this.repository = new CategoriesRepository(connection);
   }
 
@@ -83,15 +87,29 @@ export class CategoriesService {
     }
   }
 
-  async deleteCategory(userId: ObjectId, categoryId: ObjectId, now = new Date()) {
-    const deletedCategory = await this.repository.deleteAndUnlinkValues({
+  async deleteCategory(
+    userId: ObjectId,
+    categoryId: ObjectId,
+    now = new Date(),
+    context: { requestId?: string } = {},
+  ) {
+    const result = await this.repository.deleteAndUnlinkValues({
       categoryId,
       userId,
       now,
     });
 
-    if (!deletedCategory) {
+    if (!result) {
       throw notFoundError("Category was not found.");
     }
+
+    this.logger.audit("category.values_unlinked", {
+      affectedRecordCount: result.affectedRecordCount,
+      affectedValueCount: result.affectedValueCount,
+      categoryId: categoryId.toHexString(),
+      requestId: context.requestId,
+      unlinkedAt: now.toISOString(),
+      userId: userId.toHexString(),
+    });
   }
 }

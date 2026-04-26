@@ -8,11 +8,12 @@ import { Link, useNavigate } from "react-router-dom";
 import { currentUserQueryKey } from "@entities/user";
 import { signUp, signUpFormSchema } from "@features/auth";
 import type { SignUpFormValues } from "@features/auth";
+import { getApiErrorMessage } from "@shared/api/errors";
 import { Button } from "@shared/ui/button";
 import { Input } from "@shared/ui/input";
 
 function getErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : "Account creation failed.";
+  return getApiErrorMessage(error, "Account creation failed.");
 }
 
 export function SignUpPage() {

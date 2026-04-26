@@ -8,11 +8,12 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { currentUserQueryKey } from "@entities/user";
 import { getAuthRedirectPath, login, loginFormSchema } from "@features/auth";
 import type { LoginFormValues } from "@features/auth";
+import { getApiErrorMessage } from "@shared/api/errors";
 import { Button } from "@shared/ui/button";
 import { Input } from "@shared/ui/input";
 
 function getErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : "Login failed.";
+  return getApiErrorMessage(error, "Login failed.");
 }
 
 export function LoginPage() {

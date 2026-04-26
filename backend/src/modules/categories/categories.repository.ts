@@ -1,4 +1,4 @@
-import { MongoServerError, ObjectId } from "mongodb";
+import { MongoServerError, ObjectId, type ClientSession } from "mongodb";
 
 import type { CategoryDocument, DatabaseConnection } from "../../db/index.js";
 import type { CreateCategoryInput, UpdateCategoryInput } from "./categories.schemas.js";
@@ -14,6 +14,12 @@ export type UpdateCategoryDocumentInput = UpdateCategoryInput & {
   normalizedName?: string;
   userId: ObjectId;
   now: Date;
+};
+
+export type CategoryDeleteAndUnlinkResult = {
+  affectedRecordCount: number;
+  affectedValueCount: number;
+  deletedCategory: CategoryDocument;
 };
 
 export function isDuplicateKeyError(error: unknown) {
@@ -87,9 +93,15 @@ export class CategoriesRepository {
     );
   }
 
-  async deleteAndUnlinkValues(input: { categoryId: ObjectId; userId: ObjectId; now: Date }) {
+  async deleteAndUnlinkValues(input: {
+    categoryId: ObjectId;
+    userId: ObjectId;
+    now: Date;
+  }): Promise<CategoryDeleteAndUnlinkResult | null> {
     const session = this.connection.client.startSession();
     let deletedCategory: CategoryDocument | null = null;
+    let affectedRecordCount = 0;
+    let affectedValueCount = 0;
 
     try {
       await session.withTransaction(async () => {
@@ -107,7 +119,13 @@ export class CategoriesRepository {
           return;
         }
 
-        await this.connection.collections.records.updateMany(
+        affectedValueCount = await this.countLinkedValues({
+          categoryId: input.categoryId,
+          userId: input.userId,
+          session,
+        });
+
+        const updateResult = await this.connection.collections.records.updateMany(
           {
             userId: input.userId,
             "values.categoryId": input.categoryId,
@@ -129,11 +147,56 @@ export class CategoriesRepository {
             session,
           },
         );
+
+        affectedRecordCount = updateResult.modifiedCount;
       });
     } finally {
       await session.endSession();
     }
 
-    return deletedCategory;
+    if (!deletedCategory) {
+      return null;
+    }
+
+    return {
+      affectedRecordCount,
+      affectedValueCount,
+      deletedCategory,
+    };
+  }
+
+  private async countLinkedValues(input: {
+    categoryId: ObjectId;
+    userId: ObjectId;
+    session: ClientSession;
+  }) {
+    const [result] = await this.connection.collections.records
+      .aggregate<{ valueCount: number }>(
+        [
+          {
+            $match: {
+              userId: input.userId,
+              "values.categoryId": input.categoryId,
+            },
+          },
+          {
+            $unwind: "$values",
+          },
+          {
+            $match: {
+              "values.categoryId": input.categoryId,
+            },
+          },
+          {
+            $count: "valueCount",
+          },
+        ],
+        {
+          session: input.session,
+        },
+      )
+      .toArray();
+
+    return result?.valueCount ?? 0;
   }
 }

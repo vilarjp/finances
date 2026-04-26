@@ -74,6 +74,10 @@ export class CategoriesController {
     await this.categoriesService.deleteCategory(
       user.userId,
       parseCategoryId(request.params.categoryId),
+      new Date(),
+      {
+        requestId: request.id,
+      },
     );
 
     return reply.status(204).send(null);

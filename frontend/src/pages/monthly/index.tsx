@@ -22,6 +22,7 @@ import {
   useRecordClipboard,
 } from "@features/records";
 import { FinanceTable } from "@widgets/finance-table";
+import { getApiErrorMessage } from "@shared/api/errors";
 import { formatFinanceDate } from "@shared/lib/date";
 import { formatMoneyCents } from "@shared/lib/money";
 import { Button } from "@shared/ui/button";
@@ -148,7 +149,7 @@ function getRecordDescription(record: ReportRecord) {
 }
 
 function getErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : "Monthly view request failed.";
+  return getApiErrorMessage(error, "Monthly view request failed.");
 }
 
 function MonthlyPageContent() {
