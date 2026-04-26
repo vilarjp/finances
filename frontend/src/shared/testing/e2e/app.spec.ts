@@ -218,6 +218,26 @@ async function mockSignedInMonthly(page: Page) {
   });
 }
 
+async function expectMobileButtonTargets(page: Page) {
+  const undersizedButtons = await page.locator("button:visible").evaluateAll((buttons) =>
+    buttons
+      .map((button) => {
+        const rect = button.getBoundingClientRect();
+        const label =
+          button.getAttribute("aria-label") ?? button.textContent?.trim() ?? "Unlabeled button";
+
+        return {
+          height: Math.round(rect.height),
+          label,
+          width: Math.round(rect.width),
+        };
+      })
+      .filter((button) => button.height < 40 || button.width < 40),
+  );
+
+  expect(undersizedButtons).toEqual([]);
+}
+
 test("loads the frontend shell", async ({ page }) => {
   await page.goto("/");
 
@@ -240,6 +260,10 @@ for (const viewport of [
       await expect
         .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
         .toBeLessThanOrEqual(viewport.width);
+
+      if (viewport.name === "mobile") {
+        await expectMobileButtonTargets(page);
+      }
     }
   });
 }
@@ -280,6 +304,7 @@ test("keeps signed-in home dashboard usable on mobile", async ({ page }) => {
   await expect
     .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
     .toBeLessThanOrEqual(390);
+  await expectMobileButtonTargets(page);
 });
 
 test("renders signed-in monthly view on desktop", async ({ page }) => {
@@ -312,4 +337,5 @@ test("keeps signed-in monthly view usable on mobile", async ({ page }) => {
   await expect
     .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
     .toBeLessThanOrEqual(390);
+  await expectMobileButtonTargets(page);
 });
