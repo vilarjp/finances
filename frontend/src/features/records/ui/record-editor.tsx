@@ -1,5 +1,5 @@
 import { Plus, Save, Trash2, X } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, type KeyboardEvent } from "react";
 
 import type { FinanceRecord } from "@entities/record";
 import { CategorySelect } from "@features/categories";
@@ -235,11 +235,19 @@ export function RecordEditor({
     onSubmit(formValuesToMutationPayload(parsed.data));
   };
 
+  const handleDialogKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      onCancel();
+    }
+  };
+
   return (
     <section
       aria-labelledby="record-editor-title"
       aria-modal="false"
       className="rounded-lg border bg-card p-5 text-card-foreground shadow-sm"
+      onKeyDown={handleDialogKeyDown}
       role="dialog"
     >
       <div className="mb-5 flex items-start justify-between gap-3">
@@ -265,6 +273,7 @@ export function RecordEditor({
           <label className="grid gap-1 text-sm font-medium">
             Record description
             <Input
+              autoFocus
               disabled={isDisabled}
               maxLength={500}
               onChange={(event) => setValues({ ...values, description: event.target.value })}

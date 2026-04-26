@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ClipboardCopy, ClipboardPaste, Edit3, Plus, Trash2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 
 import {
   RecordCard,
@@ -27,6 +28,10 @@ type EditorState =
       record: FinanceRecord;
     };
 
+type CreateRecordLocationState = {
+  createRecordRequestId?: unknown;
+};
+
 function getCurrentMonthRange() {
   const today = new Date();
   const from = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -47,8 +52,20 @@ function getErrorMessage(error: unknown) {
   return "Record request failed.";
 }
 
+function getCreateRecordRequestId(state: unknown) {
+  if (typeof state !== "object" || state === null) {
+    return null;
+  }
+
+  const { createRecordRequestId } = state as CreateRecordLocationState;
+
+  return typeof createRecordRequestId === "number" ? createRecordRequestId : null;
+}
+
 function RecordWorkspaceContent() {
   const queryClient = useQueryClient();
+  const location = useLocation();
+  const navigate = useNavigate();
   const initialRange = useMemo(() => getCurrentMonthRange(), []);
   const recordsQuery = useRecordsQuery({
     from: initialRange.from,
@@ -60,7 +77,9 @@ function RecordWorkspaceContent() {
   const [summary, setSummary] = useState("");
   const [pasteTargetDate, setPasteTargetDate] = useState(initialRange.today);
   const [pasteTargetTime, setPasteTargetTime] = useState("");
+  const handledCreateRequestIdRef = useRef<number | null>(null);
   const records = recordsQuery.data ?? [];
+  const createRecordRequestId = getCreateRecordRequestId(location.state);
 
   const handleMutationSuccess = async (message: string) => {
     setEditorState(null);
@@ -102,11 +121,33 @@ function RecordWorkspaceContent() {
   });
   const isEditorSubmitting = createMutation.isPending || updateMutation.isPending;
 
-  const openCreateEditor = () => {
+  const openCreateEditor = useCallback(() => {
     setEditorError("");
     setSummary("");
     setEditorState({ mode: "create" });
-  };
+  }, []);
+
+  useEffect(() => {
+    if (
+      createRecordRequestId === null ||
+      handledCreateRequestIdRef.current === createRecordRequestId
+    ) {
+      return;
+    }
+
+    handledCreateRequestIdRef.current = createRecordRequestId;
+    openCreateEditor();
+    void navigate(
+      {
+        pathname: location.pathname,
+        search: location.search,
+      },
+      {
+        replace: true,
+        state: null,
+      },
+    );
+  }, [createRecordRequestId, location.pathname, location.search, navigate, openCreateEditor]);
 
   const openEditEditor = (record: FinanceRecord) => {
     setEditorError("");
