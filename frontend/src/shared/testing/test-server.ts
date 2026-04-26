@@ -7,4 +7,6 @@ export const server = setupServer(
   ),
   http.get("*/api/auth/csrf", () => HttpResponse.json({ csrfToken: "test-csrf-token" })),
   http.post("*/api/auth/logout", () => new HttpResponse(null, { status: 204 })),
+  http.get("*/api/categories", () => HttpResponse.json({ categories: [] })),
+  http.get("*/api/recurring-tags", () => HttpResponse.json({ recurringTags: [] })),
 );
