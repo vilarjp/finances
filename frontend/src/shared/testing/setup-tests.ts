@@ -1,6 +1,8 @@
 import "@testing-library/jest-dom/vitest";
 import { afterAll, afterEach, beforeAll } from "vitest";
 
+import { clearApiSession } from "@shared/api/http-client";
+
 import { server } from "./test-server";
 
 Object.defineProperty(window, "matchMedia", {
@@ -18,5 +20,8 @@ Object.defineProperty(window, "matchMedia", {
 });
 
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
-afterEach(() => server.resetHandlers());
+afterEach(() => {
+  clearApiSession({ broadcast: false });
+  server.resetHandlers();
+});
 afterAll(() => server.close());
