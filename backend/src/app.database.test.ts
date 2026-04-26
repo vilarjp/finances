@@ -10,6 +10,7 @@ describe("createApp database lifecycle", () => {
       env: {
         NODE_ENV: "test",
         MONGODB_URI: await getTestMongoUri(),
+        COOKIE_SECRET: "test-cookie-secret-that-is-long-enough",
       },
       logger: false,
     });
