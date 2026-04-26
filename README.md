@@ -67,6 +67,19 @@ indexes, and closes the MongoDB client during Fastify shutdown. Backend
 integration tests use an in-memory single-node replica set.
 `COOKIE_SECRET` is required in every environment because auth cookies are signed
 and access, refresh, and CSRF token signatures are derived from that secret.
+`FRONTEND_ORIGINS` is a comma-separated allowlist used for credentialed CORS;
+development defaults allow the Vite origins on `127.0.0.1:5173` and
+`localhost:5173`. `AUTH_RATE_LIMIT_WINDOW_MS` and
+`AUTH_RATE_LIMIT_MAX_ATTEMPTS` control the in-memory brute-force protection on
+public auth endpoints.
+
+Backend observability intentionally stays local for now. The app uses a small
+structured logging layer with `audit`, `debug`, `info`, `warn`, and `error`
+methods that writes JSON lines through `console.log`; no Datadog, Sentry, hosted
+log drain, or similar provider is integrated. Request logs omit request and
+response payloads. Audit logs for recurring propagation and category/tag bulk
+unlink operations include request id, user id, object ids, cutoff/unlink
+instants, and affected counts, without finance labels, descriptions, or amounts.
 
 Auth endpoints are mounted under `/api/auth`:
 
@@ -79,11 +92,13 @@ Auth endpoints are mounted under `/api/auth`:
 
 The auth cookies use the approved `__Host-finance_access` and
 `__Host-finance_refresh` names with `Path=/`, httpOnly, SameSite=Lax, and Secure
-in production.
+in production. Development keeps `Secure` off so local HTTP testing works; use
+HTTPS and production mode outside local development.
 
 ```sh
 pnpm --filter @finances/backend dev
 pnpm --filter @finances/backend test
+pnpm audit --audit-level moderate
 ```
 
 ## Project Layout

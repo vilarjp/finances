@@ -75,6 +75,10 @@ export class RecurringTagsController {
       user.userId,
       parseRecurringTagId(request.params.tagId),
       updateRecurringTagAmountSchema.parse(request.body),
+      new Date(),
+      {
+        requestId: request.id,
+      },
     );
 
     return reply.send({
@@ -97,6 +101,10 @@ export class RecurringTagsController {
     await this.recurringTagsService.deleteRecurringTag(
       user.userId,
       parseRecurringTagId(request.params.tagId),
+      new Date(),
+      {
+        requestId: request.id,
+      },
     );
 
     return reply.status(204).send(null);

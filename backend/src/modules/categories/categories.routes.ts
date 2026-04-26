@@ -10,7 +10,7 @@ export const categoriesRoutes: FastifyPluginCallback = (app, _options, done) => 
     return;
   }
 
-  const categoriesService = new CategoriesService(app.financeDb);
+  const categoriesService = new CategoriesService(app.financeDb, app.financeLogger);
   const controller = new CategoriesController(categoriesService);
 
   app.get(

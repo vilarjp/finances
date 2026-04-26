@@ -7,7 +7,7 @@ const config = parseEnv();
 const app = await createApp({ env: process.env });
 
 async function shutdown(signal: NodeJS.Signals) {
-  app.log.info({ signal }, "Shutting down backend server");
+  app.financeLogger.info("server.shutdown", { signal });
   await app.close();
 }
 
@@ -24,7 +24,11 @@ try {
     host: config.host,
     port: config.port,
   });
+  app.financeLogger.info("server.started", {
+    host: config.host,
+    port: config.port,
+  });
 } catch (error) {
-  app.log.error({ err: error }, "Failed to start backend server");
+  app.financeLogger.error("server.start_failed", { error });
   process.exit(1);
 }

@@ -10,7 +10,7 @@ export const recurringTagsRoutes: FastifyPluginCallback = (app, _options, done) 
     return;
   }
 
-  const recurringTagsService = new RecurringTagsService(app.financeDb);
+  const recurringTagsService = new RecurringTagsService(app.financeDb, app.financeLogger);
   const controller = new RecurringTagsController(recurringTagsService);
 
   app.get(

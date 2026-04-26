@@ -33,12 +33,13 @@ function createDatabaseConnection(database: TestDatabase): DatabaseConnection {
   };
 }
 
-async function createAuthApp() {
+async function createAuthApp(env: Record<string, string | undefined> = {}) {
   testDatabase = await createTestDatabase();
   app = await createApp({
     env: {
       NODE_ENV: "test",
       COOKIE_SECRET: testCookieSecret,
+      ...env,
     },
     logger: false,
     database: {
@@ -202,6 +203,53 @@ describe("auth routes", () => {
     expect(loginResponse.json()).toMatchObject({
       error: {
         code: "INVALID_CREDENTIALS",
+      },
+    });
+  });
+
+  it("rate limits repeated auth attempts from the same client and route", async () => {
+    const { app: appInstance } = await createAuthApp({
+      AUTH_RATE_LIMIT_MAX_ATTEMPTS: "2",
+      AUTH_RATE_LIMIT_WINDOW_MS: "60000",
+    });
+
+    await signUp(appInstance, {
+      email: "limited@example.com",
+      password: "valid password for limited user",
+    });
+
+    const firstLoginResponse = await appInstance.inject({
+      method: "POST",
+      url: "/api/auth/login",
+      payload: {
+        email: "limited@example.com",
+        password: "incorrect password",
+      },
+    });
+    const secondLoginResponse = await appInstance.inject({
+      method: "POST",
+      url: "/api/auth/login",
+      payload: {
+        email: "limited@example.com",
+        password: "incorrect password",
+      },
+    });
+    const thirdLoginResponse = await appInstance.inject({
+      method: "POST",
+      url: "/api/auth/login",
+      payload: {
+        email: "limited@example.com",
+        password: "incorrect password",
+      },
+    });
+
+    expect(firstLoginResponse.statusCode).toBe(401);
+    expect(secondLoginResponse.statusCode).toBe(401);
+    expect(thirdLoginResponse.statusCode).toBe(429);
+    expect(thirdLoginResponse.headers["retry-after"]).toBeDefined();
+    expect(thirdLoginResponse.json()).toMatchObject({
+      error: {
+        code: "RATE_LIMITED",
       },
     });
   });

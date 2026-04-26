@@ -9,6 +9,7 @@ import {
   type RecurringTagPropagation,
 } from "@entities/recurring-tag";
 import { invalidateFinanceData } from "@entities/record";
+import { getApiErrorMessage } from "@shared/api/errors";
 import { cn } from "@shared/lib/utils";
 import { formatMoneyCents } from "@shared/lib/money";
 import { Button } from "@shared/ui/button";
@@ -46,7 +47,7 @@ type RecurringTagValueEditorProps = {
 };
 
 function getErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : "Recurring tag request failed.";
+  return getApiErrorMessage(error, "Recurring tag request failed.");
 }
 
 function findRecurringTag(recurringTags: RecurringTag[], recurringTagId: string) {

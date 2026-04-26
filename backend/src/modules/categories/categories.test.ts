@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { createApp } from "../../app.js";
 import type { DatabaseConnection } from "../../db/index.js";
+import type { AppLogger, AppLogContext } from "../../shared/logger.js";
 import {
   createRecordValueFixture,
   insertCategoryFixture,
@@ -19,6 +20,34 @@ type ResponseWithHeaders = {
 
 let app: FastifyInstance | undefined;
 let testDatabase: TestDatabase | undefined;
+
+function createCapturingLogger() {
+  const entries: Array<{ context?: AppLogContext; event: string; level: string }> = [];
+  const log =
+    (level: string) =>
+    (event: string, context?: AppLogContext): void => {
+      if (context) {
+        entries.push({ context, event, level });
+        return;
+      }
+
+      entries.push({ event, level });
+    };
+  const logger: AppLogger = {
+    audit: log("audit"),
+    debug: log("debug"),
+    error: log("error"),
+    fatal: log("fatal"),
+    info: log("info"),
+    trace: log("trace"),
+    warn: log("warn"),
+  };
+
+  return {
+    entries,
+    logger,
+  };
+}
 
 afterEach(async () => {
   await app?.close();
@@ -36,9 +65,10 @@ function createDatabaseConnection(database: TestDatabase): DatabaseConnection {
   };
 }
 
-async function createCategoryApp() {
+async function createCategoryApp(appLogger?: AppLogger) {
   testDatabase = await createTestDatabase();
   app = await createApp({
+    ...(appLogger ? { appLogger } : {}),
     env: {
       NODE_ENV: "test",
       COOKIE_SECRET: testCookieSecret,
@@ -259,7 +289,8 @@ describe("category routes", () => {
   });
 
   it("deletes a category and unlinks only that user's matching record values", async () => {
-    const { app: appInstance, database } = await createCategoryApp();
+    const { entries, logger } = createCapturingLogger();
+    const { app: appInstance, database } = await createCategoryApp(logger);
     const firstUser = await signUp(appInstance, "record-owner@example.com");
     const secondUser = await signUp(appInstance, "other-record-owner@example.com");
     const category = await insertCategoryFixture(database.db, {
@@ -342,5 +373,18 @@ describe("category routes", () => {
         _id: category._id,
       }),
     ).resolves.toBeNull();
+    const auditLog = entries.find((entry) => entry.event === "category.values_unlinked");
+
+    expect(auditLog).toBeDefined();
+    expect(auditLog?.level).toBe("audit");
+    expect(auditLog?.context).toMatchObject({
+      affectedRecordCount: 1,
+      affectedValueCount: 1,
+      categoryId: category._id.toHexString(),
+      userId: firstUser.userId,
+    });
+    expect(typeof auditLog?.context?.requestId).toBe("string");
+    expect(JSON.stringify(entries)).not.toContain("Electric bill");
+    expect(JSON.stringify(entries)).not.toContain("12345");
   });
 });

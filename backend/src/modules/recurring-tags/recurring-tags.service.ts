@@ -2,6 +2,7 @@ import type { ObjectId } from "mongodb";
 
 import type { DatabaseConnection } from "../../db/index.js";
 import { HttpError, notFoundError } from "../../shared/errors.js";
+import { createNoopLogger, type AppLogger } from "../../shared/logger.js";
 import {
   isDuplicateKeyError,
   RecurringTagsRepository,
@@ -25,7 +26,10 @@ function duplicateRecurringTagNameError() {
 export class RecurringTagsService {
   private readonly repository: RecurringTagsRepository;
 
-  constructor(connection: DatabaseConnection) {
+  constructor(
+    connection: DatabaseConnection,
+    private readonly logger: AppLogger = createNoopLogger(),
+  ) {
     this.repository = new RecurringTagsRepository(connection);
   }
 
@@ -81,16 +85,30 @@ export class RecurringTagsService {
     }
   }
 
-  async deleteRecurringTag(userId: ObjectId, tagId: ObjectId, now = new Date()) {
-    const deletedTag = await this.repository.deleteAndUnlinkValues({
+  async deleteRecurringTag(
+    userId: ObjectId,
+    tagId: ObjectId,
+    now = new Date(),
+    context: { requestId?: string } = {},
+  ) {
+    const result = await this.repository.deleteAndUnlinkValues({
       tagId,
       userId,
       now,
     });
 
-    if (!deletedTag) {
+    if (!result) {
       throw notFoundError("Recurring tag was not found.");
     }
+
+    this.logger.audit("recurring_tag.values_unlinked", {
+      affectedRecordCount: result.affectedRecordCount,
+      affectedValueCount: result.affectedValueCount,
+      requestId: context.requestId,
+      recurringTagId: tagId.toHexString(),
+      unlinkedAt: now.toISOString(),
+      userId: userId.toHexString(),
+    });
   }
 
   async updateRecurringTagAmount(
@@ -98,6 +116,7 @@ export class RecurringTagsService {
     tagId: ObjectId,
     input: UpdateRecurringTagAmountInput,
     now = new Date(),
+    context: { requestId?: string } = {},
   ) {
     const result = await this.repository.updateAmountAndPropagate({
       ...input,
@@ -109,6 +128,16 @@ export class RecurringTagsService {
     if (!result) {
       throw notFoundError("Recurring tag was not found.");
     }
+
+    this.logger.audit("recurring_tag.amount_propagated", {
+      affectedRecordCount: result.propagation.affectedRecordCount,
+      affectedValueCount: result.propagation.affectedValueCount,
+      cutoffAt: result.propagation.cutoffAt.toISOString(),
+      recurringTagId: tagId.toHexString(),
+      requestId: context.requestId,
+      skippedPastValueCount: result.propagation.skippedPastValueCount,
+      userId: userId.toHexString(),
+    });
 
     return result;
   }

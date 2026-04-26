@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { createApp } from "../../app.js";
 import type { DatabaseConnection } from "../../db/index.js";
+import type { AppLogger, AppLogContext } from "../../shared/logger.js";
 import {
   createRecordValueFixture,
   insertRecordFixture,
@@ -21,6 +22,34 @@ type ResponseWithHeaders = {
 let app: FastifyInstance | undefined;
 let testDatabase: TestDatabase | undefined;
 
+function createCapturingLogger() {
+  const entries: Array<{ context?: AppLogContext; event: string; level: string }> = [];
+  const log =
+    (level: string) =>
+    (event: string, context?: AppLogContext): void => {
+      if (context) {
+        entries.push({ context, event, level });
+        return;
+      }
+
+      entries.push({ event, level });
+    };
+  const logger: AppLogger = {
+    audit: log("audit"),
+    debug: log("debug"),
+    error: log("error"),
+    fatal: log("fatal"),
+    info: log("info"),
+    trace: log("trace"),
+    warn: log("warn"),
+  };
+
+  return {
+    entries,
+    logger,
+  };
+}
+
 afterEach(async () => {
   await app?.close();
   await testDatabase?.cleanup();
@@ -37,9 +66,10 @@ function createDatabaseConnection(database: TestDatabase): DatabaseConnection {
   };
 }
 
-async function createRecurringTagsApp() {
+async function createRecurringTagsApp(appLogger?: AppLogger) {
   testDatabase = await createTestDatabase();
   app = await createApp({
+    ...(appLogger ? { appLogger } : {}),
     env: {
       NODE_ENV: "test",
       COOKIE_SECRET: testCookieSecret,
@@ -220,7 +250,8 @@ describe("recurring-value tag routes", () => {
   });
 
   it("deletes a recurring tag and unlinks only that user's matching values", async () => {
-    const { app: appInstance, database } = await createRecurringTagsApp();
+    const { entries, logger } = createCapturingLogger();
+    const { app: appInstance, database } = await createRecurringTagsApp(logger);
     const firstUser = await signUp(appInstance, "record-tags@example.com");
     const secondUser = await signUp(appInstance, "other-record-tags@example.com");
     const recurringTag = await insertRecurringValueTagFixture(database.db, {
@@ -305,10 +336,22 @@ describe("recurring-value tag routes", () => {
         _id: recurringTag._id,
       }),
     ).resolves.toBeNull();
+    const auditLog = entries.find((entry) => entry.event === "recurring_tag.values_unlinked");
+
+    expect(auditLog).toBeDefined();
+    expect(auditLog?.level).toBe("audit");
+    expect(auditLog?.context).toMatchObject({
+      affectedRecordCount: 1,
+      affectedValueCount: 1,
+      recurringTagId: recurringTag._id.toHexString(),
+      userId: firstUser.userId,
+    });
+    expect(typeof auditLog?.context?.requestId).toBe("string");
   });
 
   it("updates tag amount and propagates only future linked values for the authenticated user", async () => {
-    const { app: appInstance, database } = await createRecurringTagsApp();
+    const { entries, logger } = createCapturingLogger();
+    const { app: appInstance, database } = await createRecurringTagsApp(logger);
     const firstUser = await signUp(appInstance, "propagation-owner@example.com");
     const secondUser = await signUp(appInstance, "propagation-other@example.com");
     const firstUserId = new ObjectId(firstUser.userId);
@@ -444,6 +487,21 @@ describe("recurring-value tag routes", () => {
         label: "Second user's future linked",
       }),
     );
+    const auditLog = entries.find((entry) => entry.event === "recurring_tag.amount_propagated");
+
+    expect(auditLog).toBeDefined();
+    expect(auditLog?.level).toBe("audit");
+    expect(auditLog?.context).toMatchObject({
+      affectedRecordCount: 1,
+      affectedValueCount: 2,
+      recurringTagId: recurringTag._id.toHexString(),
+      skippedPastValueCount: 1,
+      userId: firstUser.userId,
+    });
+    expect(typeof auditLog?.context?.cutoffAt).toBe("string");
+    expect(typeof auditLog?.context?.requestId).toBe("string");
+    expect(JSON.stringify(entries)).not.toContain("Future linked one");
+    expect(JSON.stringify(entries)).not.toContain("33333");
   });
 
   it("includes records at the exact cutoff timestamp in recurring amount propagation", async () => {

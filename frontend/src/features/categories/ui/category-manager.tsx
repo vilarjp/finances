@@ -5,6 +5,7 @@ import { useId, useState, type FormEvent } from "react";
 import { categoriesQueryKey, useCategoriesQuery } from "@entities/category";
 import type { Category } from "@entities/category";
 import { invalidateFinanceData } from "@entities/record";
+import { getApiErrorMessage } from "@shared/api/errors";
 import { cn } from "@shared/lib/utils";
 import { Button } from "@shared/ui/button";
 import { Input } from "@shared/ui/input";
@@ -25,7 +26,7 @@ type CategorySelectProps = {
 };
 
 function getErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : "Category request failed.";
+  return getApiErrorMessage(error, "Category request failed.");
 }
 
 function parseFormValues(values: CategoryFormValues) {
