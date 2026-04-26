@@ -11,6 +11,7 @@ import { authRoutes } from "./modules/auth/auth.routes.js";
 import { AuthService } from "./modules/auth/auth.service.js";
 import { categoriesRoutes } from "./modules/categories/categories.routes.js";
 import { healthRoutes } from "./modules/health/health.routes.js";
+import { recurringTagsRoutes } from "./modules/recurring-tags/recurring-tags.routes.js";
 import { createLoggerOptions } from "./shared/logger.js";
 
 declare module "fastify" {
@@ -82,6 +83,9 @@ export async function createApp(options: CreateAppOptions = {}): Promise<Fastify
     });
     await app.register(categoriesRoutes, {
       prefix: "/api/categories",
+    });
+    await app.register(recurringTagsRoutes, {
+      prefix: "/api/recurring-tags",
     });
   }
 
