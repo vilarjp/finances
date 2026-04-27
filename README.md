@@ -92,6 +92,7 @@ it to `FRONTEND_ORIGINS` in `backend/.env`.
 ```sh
 pnpm format
 pnpm lint
+pnpm deps:check
 pnpm typecheck
 pnpm test
 pnpm build
@@ -101,6 +102,7 @@ pnpm audit
 
 - `format`: checks repository formatting with Prettier.
 - `lint`: runs each package ESLint config.
+- `deps:check`: runs Knip in dependency mode to catch unused, unlisted, and unresolved package dependencies.
 - `typecheck`: runs strict TypeScript checks for both apps.
 - `test`: runs backend and frontend Vitest suites.
 - `build`: compiles the backend and builds the frontend.
@@ -160,6 +162,7 @@ Run the normal quality gate before handing off changes:
 ```sh
 pnpm format
 pnpm lint
+pnpm deps:check
 pnpm typecheck
 pnpm test
 pnpm build

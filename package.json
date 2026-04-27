@@ -12,6 +12,7 @@
     "format": "prettier --check \"**/*.{cjs,css,html,js,json,jsx,md,mjs,ts,tsx,yml,yaml}\"",
     "format:write": "prettier --write \"**/*.{cjs,css,html,js,json,jsx,md,mjs,ts,tsx,yml,yaml}\"",
     "lint": "pnpm --recursive --if-present lint",
+    "deps:check": "knip --dependencies",
     "typecheck": "pnpm --recursive --if-present typecheck",
     "test": "pnpm --recursive --if-present test",
     "build": "pnpm --recursive --if-present build",
@@ -19,6 +20,7 @@
     "audit": "pnpm audit --audit-level moderate"
   },
   "devDependencies": {
+    "knip": "^6.7.0",
     "prettier": "3.8.3"
   }
 }
