@@ -171,6 +171,7 @@ export function recordToSnapshot(record: FinanceRecord): RecordSnapshot {
   return {
     ...typeAndKind,
     description: record.description,
+    effectiveTime: getFinanceTime(record.effectiveAt),
     fontColor: record.fontColor,
     backgroundColor: record.backgroundColor,
     values: record.values.map((value, index) => ({

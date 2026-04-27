@@ -4,7 +4,7 @@ slug: workspace-foundation
 type: implementation-task
 status: completed
 created: 2026-04-26
-updated: 2026-04-26
+updated: 2026-04-27
 source: plan
 plan: plan.md
 task: 1
@@ -51,6 +51,9 @@ Planned task text:
 - Added root README setup notes, workspace script descriptions, local MongoDB instructions, and the default replica-set connection string.
 - Generated `pnpm-lock.yaml` with Prettier `3.8.3`.
 - Deferred CI because the plan explicitly gates the initial CI workflow on the first scaffolded apps existing.
+- Current status update: CI now exists at `.github/workflows/ci.yml`; see
+  `docs/2026-04-26-whole-codebase-readiness-review/task_1.md` for the
+  remediation pass that added the quality gate.
 - Implemented sequentially as requested for Task 1.
 
 ## Changed Files
@@ -105,6 +108,10 @@ Planned task text:
 
 - TDD was skipped because this task was repository configuration and workspace scaffolding with no application behavior or test harness yet.
 - CI was not added in Task 1 because no scaffolded frontend or backend app existed yet, and the plan says to add CI once the first scaffolded apps exist.
+- Resolved follow-up: CI was added after the frontend and backend apps existed.
+  The current workflow runs install, format, lint, dependency hygiene,
+  typecheck, tests, build, audit, mocked browser workflows, and full-stack
+  browser smoke coverage.
 - The root `lint`, `typecheck`, `test`, and `build` scripts were intentionally wired as recursive workspace delegates so later `frontend` and `backend` package scripts can plug into the same root commands.
 - The approved PRD and plan were committed during the same branch workflow, but they predated Task 1 implementation and were not changed as part of the workspace foundation work.
 - Follow-up: Task 2 should scaffold the frontend package so root scripts start exercising real frontend format, lint, typecheck, test, build, and development workflows.
@@ -120,6 +127,8 @@ None
 ## Document Changelog
 
 - 2026-04-26: Created retroactively from the Task 1 implementation session completed on 2026-04-25.
+- 2026-04-27: Added a current-status cross-reference noting that CI was later
+  implemented by the whole-codebase readiness review remediation task.
 
 ## Next Task
 

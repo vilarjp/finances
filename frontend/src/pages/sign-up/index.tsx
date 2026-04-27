@@ -5,7 +5,7 @@ import type { FormEvent } from "react";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router-dom";
 
-import { currentUserQueryKey } from "@entities/user";
+import { setCurrentUserQueryData } from "@entities/user";
 import { signUp, signUpFormSchema } from "@features/auth";
 import type { SignUpFormValues } from "@features/auth";
 import { getApiErrorMessage } from "@shared/api/errors";
@@ -30,7 +30,7 @@ export function SignUpPage() {
   const signUpMutation = useMutation({
     mutationFn: signUp,
     onSuccess: (user) => {
-      queryClient.setQueryData(currentUserQueryKey, user);
+      setCurrentUserQueryData(queryClient, user);
       void navigate("/", { replace: true });
     },
   });

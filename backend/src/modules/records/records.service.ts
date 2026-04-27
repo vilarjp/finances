@@ -236,9 +236,11 @@ export class RecordsService {
   }
 
   async pasteRecord(userId: ObjectId, input: PasteRecordInput, now = new Date()) {
+    const targetTime = input.targetTime ?? input.sourceSnapshot.effectiveTime;
+
     return this.createRecordFromSnapshot(userId, input.sourceSnapshot, {
       date: input.targetDate,
-      ...(input.targetTime !== undefined ? { time: input.targetTime } : {}),
+      ...(targetTime !== undefined ? { time: targetTime } : {}),
       now,
     });
   }
