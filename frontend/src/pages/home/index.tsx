@@ -6,7 +6,7 @@ import {
   TrendingUp,
   WalletCards,
 } from "lucide-react";
-import { Children, useMemo, useState, type ReactNode } from "react";
+import { Children, useMemo, type ReactNode } from "react";
 import {
   CartesianGrid,
   Cell,
@@ -24,11 +24,8 @@ import { useHomeReportQuery } from "@entities/report";
 import type { CategoryBreakdownItem, HomeReport } from "@entities/report";
 import { FinanceTable } from "@widgets/finance-table";
 import { CategoryManager } from "@features/categories";
-import {
-  RecurringTagValueEditor,
-  type RecurringTagValueEditorValue,
-} from "@features/recurring-tags";
-import { RecordWorkspace } from "@features/records";
+import { RecurringTagValueEditor } from "@features/recurring-tags";
+import { RecordWorkspace, type RecurringValueControlsRenderProps } from "@features/records";
 import { getApiErrorMessage } from "@shared/api/errors";
 import { formatFinanceDate } from "@shared/lib/date";
 import { formatMoneyCents } from "@shared/lib/money";
@@ -467,13 +464,27 @@ function HomeDashboard({ report }: { report: HomeReport }) {
   );
 }
 
+function renderRecurringValueControls({
+  disabled,
+  labelPrefix,
+  onValueChange,
+  value,
+}: RecurringValueControlsRenderProps) {
+  return (
+    <RecurringTagValueEditor
+      disabled={Boolean(disabled)}
+      labelPrefix={labelPrefix}
+      onValueChange={onValueChange}
+      showAmountInput={false}
+      surface="inline"
+      value={value}
+    />
+  );
+}
+
 export function HomePage() {
   const reportDate = useMemo(() => getHomeReportDate(), []);
   const homeReportQuery = useHomeReportQuery(reportDate);
-  const [recurringTagValue, setRecurringTagValue] = useState<RecurringTagValueEditorValue>({
-    amountCents: 0,
-    recurringValueTagId: "",
-  });
 
   return (
     <main className="mx-auto grid w-full max-w-7xl gap-8 overflow-x-clip px-4 py-8">
@@ -503,11 +514,10 @@ export function HomePage() {
       {homeReportQuery.data ? <HomeDashboard report={homeReportQuery.data} /> : null}
 
       <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
-        <RecordWorkspace />
+        <RecordWorkspace renderRecurringValueControls={renderRecurringValueControls} />
 
         <aside className="grid content-start gap-3">
           <CategoryManager />
-          <RecurringTagValueEditor onValueChange={setRecurringTagValue} value={recurringTagValue} />
           <div className="rounded-lg border bg-card p-5 text-card-foreground shadow-sm">
             <WalletCards aria-hidden="true" className="mb-6 size-6 text-accent-foreground" />
             <p className="text-sm font-medium text-muted-foreground">Next slice</p>

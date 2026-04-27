@@ -4,4 +4,4 @@ export {
   defaultCategoryFormValues,
   type CategoryFormValues,
 } from "./model/forms";
-export { CategoryManager, CategorySelect } from "./ui/category-manager";
+export { CategoryManager } from "./ui/category-manager";

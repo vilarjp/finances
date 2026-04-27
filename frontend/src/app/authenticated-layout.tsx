@@ -17,6 +17,7 @@ import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@app/providers/auth-context";
 import { currentUserQueryKey } from "@entities/user";
 import { logout } from "@features/auth";
+import { RecordClipboardProvider } from "@features/records";
 import { ThemeModeToggle } from "@features/theme-toggle";
 import { cn } from "@shared/lib/utils";
 import { Button } from "@shared/ui/button";
@@ -278,7 +279,11 @@ export function AuthenticatedLayout() {
           <ThemeModeToggle />
         </header>
 
-        <Outlet />
+        {user ? (
+          <RecordClipboardProvider key={user.id} userId={user.id}>
+            <Outlet />
+          </RecordClipboardProvider>
+        ) : null}
       </div>
 
       {isMobileSidebarOpen ? (

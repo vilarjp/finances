@@ -62,6 +62,10 @@ export const recordValueInputSchema = z
   .strict();
 
 const valuesInputSchema = z.array(recordValueInputSchema).min(1).max(50);
+const updateRecordValueInputSchema = recordValueInputSchema.extend({
+  id: objectIdSchema("valueId").optional(),
+});
+const updateValuesInputSchema = z.array(updateRecordValueInputSchema).min(1).max(50);
 
 export const createRecordSchema = z
   .object({
@@ -86,7 +90,7 @@ export const updateRecordSchema = z
     description: recordDescriptionSchema.optional(),
     fontColor: recordColorSchema("fontColor").optional(),
     backgroundColor: recordColorSchema("backgroundColor").optional(),
-    values: valuesInputSchema.optional(),
+    values: updateValuesInputSchema.optional(),
   })
   .strict()
   .refine((value) => Object.keys(value).length > 0, {
@@ -122,6 +126,7 @@ export const pasteRecordSchema = z
   .strict();
 
 export type RecordValueInput = z.infer<typeof recordValueInputSchema>;
+export type UpdateRecordValueInput = z.infer<typeof updateRecordValueInputSchema>;
 export type CreateRecordInput = z.infer<typeof createRecordSchema>;
 export type UpdateRecordInput = z.infer<typeof updateRecordSchema>;
 export type RecordRangeQuery = z.infer<typeof recordRangeQuerySchema>;

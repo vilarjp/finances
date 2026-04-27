@@ -180,6 +180,8 @@ describe("auth routes", () => {
 
   it("sets host-prefixed Secure cookies in production", async () => {
     const { app: appInstance } = await createAuthApp({
+      FRONTEND_ORIGINS: "https://finance.example.com",
+      MONGODB_URI: "mongodb://mongo.example.com:27017/finances",
       NODE_ENV: "production",
     });
 

@@ -9,8 +9,7 @@ import {
   type ThemeMode,
   isThemeMode,
 } from "@shared/config/theme";
-
-import { ThemeContext } from "./theme-context";
+import { ThemeContext } from "@shared/config/theme-context";
 
 function getInitialTheme(): ThemeMode {
   if (typeof window === "undefined") {

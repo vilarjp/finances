@@ -821,11 +821,13 @@ test("updates recurring tag amount only for current and future linked records", 
   await installFinanceApiMock(page, state);
   await page.goto("/");
 
-  await page
-    .getByRole("combobox", { exact: true, name: "Recurring tag" })
-    .selectOption(recurringTag.id);
-  await page.getByLabel("Value amount cents").fill("70000");
-  await page.getByRole("button", { name: "Update shared tag amount" }).click();
+  await page.getByRole("button", { name: "Edit Future subscription record" }).click();
+
+  const editor = page.getByRole("dialog", { name: "Edit record" });
+
+  await editor.getByLabel("Value 1 recurring tag").selectOption(recurringTag.id);
+  await editor.getByLabel("Value 1 amount cents").fill("70000");
+  await editor.getByRole("button", { name: "Update shared tag amount" }).click();
 
   await expect(page.getByText("Updated 1 value in 1 record.")).toBeVisible();
 

@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.json --noEmit --pretty false",
     "test": "vitest run",
+    "test:e2e:server": "tsx src/test/e2e-server.ts",
     "test:watch": "vitest"
   },
   "dependencies": {

@@ -348,6 +348,8 @@ describe("record routes", () => {
     const { app: appInstance, database } = await createRecordsApp();
     const firstUser = await signUp(appInstance, "record-owner@example.com");
     const secondUser = await signUp(appInstance, "record-viewer@example.com");
+    const originalValueId = new ObjectId();
+    const originalValueCreatedAt = new Date("2026-04-24T12:00:00.000Z");
     const record = await insertRecordFixture(database.db, {
       userId: new ObjectId(firstUser.userId),
       type: "expense",
@@ -355,6 +357,8 @@ describe("record routes", () => {
       description: "Original",
       values: [
         createRecordValueFixture({
+          _id: originalValueId,
+          createdAt: originalValueCreatedAt,
           label: "Original value",
           amountCents: 100_00,
           sortOrder: 0,
@@ -382,6 +386,7 @@ describe("record routes", () => {
         backgroundColor: "finance-expense",
         values: [
           {
+            id: originalValueId.toHexString(),
             label: "Edited value",
             amountCents: 125_00,
             sortOrder: 0,
@@ -432,6 +437,8 @@ describe("record routes", () => {
         totalAmountCents: 125_00,
         values: [
           {
+            id: originalValueId.toHexString(),
+            createdAt: originalValueCreatedAt.toISOString(),
             label: "Edited value",
             amountCents: 125_00,
           },
@@ -441,6 +448,48 @@ describe("record routes", () => {
     expect(crossUserUpdateResponse.statusCode).toBe(404);
     expect(deleteResponse.statusCode).toBe(204);
     expect(getDeletedResponse.statusCode).toBe(404);
+  });
+
+  it("preserves existing finance-local time when only a record effective date changes", async () => {
+    const { app: appInstance, database } = await createRecordsApp();
+    const user = await signUp(appInstance, "record-date-update@example.com");
+    const record = await insertRecordFixture(database.db, {
+      userId: new ObjectId(user.userId),
+      effectiveAt: new Date("2026-04-25T11:30:15.123Z"),
+      financeDate: "2026-04-25",
+      financeMonth: "2026-04",
+      type: "expense",
+      expenseKind: "daily",
+      description: "Timed record",
+      values: [
+        createRecordValueFixture({
+          label: "Timed value",
+          amountCents: 50_00,
+          sortOrder: 0,
+        }),
+      ],
+    });
+
+    const updateResponse = await appInstance.inject({
+      method: "PATCH",
+      url: `/api/records/${record._id.toHexString()}`,
+      headers: {
+        cookie: user.cookieHeader,
+        "x-csrf-token": user.csrfToken,
+      },
+      payload: {
+        effectiveDate: "2026-04-26",
+      },
+    });
+
+    expect(updateResponse.statusCode).toBe(200);
+    expect(updateResponse.json()).toMatchObject({
+      record: {
+        effectiveAt: "2026-04-26T11:30:15.123Z",
+        financeDate: "2026-04-26",
+        financeMonth: "2026-04",
+      },
+    });
   });
 
   it("pastes a sanitized source snapshot onto a target date without changing copied data", async () => {

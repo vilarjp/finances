@@ -1,8 +1,9 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Check, Plus, RefreshCcw, Save, Tag, Unlink } from "lucide-react";
-import { useId, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 
 import {
+  RecurringTagSelect,
   recurringTagsQueryKey,
   useRecurringTagsQuery,
   type RecurringTag,
@@ -31,18 +32,13 @@ export type RecurringTagValueEditorValue = {
   recurringValueTagId: string;
 };
 
-type RecurringTagSelectProps = {
-  className?: string;
-  disabled?: boolean;
-  label?: string;
-  onValueChange: (recurringTagId: string) => void;
-  value: string;
-};
-
 type RecurringTagValueEditorProps = {
   className?: string;
   disabled?: boolean;
+  labelPrefix?: string;
   onValueChange: (value: RecurringTagValueEditorValue) => void;
+  showAmountInput?: boolean;
+  surface?: "card" | "inline";
   value: RecurringTagValueEditorValue;
 };
 
@@ -65,42 +61,13 @@ function formatPropagationSummary(propagation: RecurringTagPropagation) {
   return `Updated ${propagation.affectedValueCount} ${valueLabel} in ${propagation.affectedRecordCount} ${recordLabel}.`;
 }
 
-export function RecurringTagSelect({
-  className,
-  disabled = false,
-  label = "Recurring tag",
-  onValueChange,
-  value,
-}: RecurringTagSelectProps) {
-  const selectId = useId();
-  const recurringTagsQuery = useRecurringTagsQuery();
-  const recurringTags = recurringTagsQuery.data ?? [];
-
-  return (
-    <label className={cn("grid gap-1 text-sm font-medium", className)} htmlFor={selectId}>
-      {label}
-      <select
-        className="border-input bg-background ring-offset-background focus-visible:ring-ring h-10 w-full rounded-md border px-3 py-2 text-base outline-none transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
-        disabled={disabled || recurringTagsQuery.isPending}
-        id={selectId}
-        onChange={(event) => onValueChange(event.target.value)}
-        value={value}
-      >
-        <option value="">No recurring tag</option>
-        {recurringTags.map((recurringTag) => (
-          <option key={recurringTag.id} value={recurringTag.id}>
-            {recurringTag.name}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
-
 export function RecurringTagValueEditor({
   className,
   disabled = false,
+  labelPrefix,
   onValueChange,
+  showAmountInput = true,
+  surface = "card",
   value,
 }: RecurringTagValueEditorProps) {
   const queryClient = useQueryClient();
@@ -120,6 +87,13 @@ export function RecurringTagValueEditor({
     selectedTag && selectedTagDraft.recurringTagId === selectedTag.id
       ? selectedTagDraft.name
       : (selectedTag?.name ?? "");
+  const recurringTagLabel = labelPrefix ? `${labelPrefix} recurring tag` : "Recurring tag";
+  const newTagNameLabel = labelPrefix
+    ? `${labelPrefix} new recurring tag name`
+    : "New recurring tag name";
+  const selectedTagNameLabel = labelPrefix
+    ? `${labelPrefix} selected tag name`
+    : "Selected tag name";
 
   const invalidateRecurringTags = async () => {
     await Promise.all([
@@ -252,9 +226,7 @@ export function RecurringTagValueEditor({
     });
   };
 
-  const handleCreateSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
+  const submitCreate = () => {
     const parsed = createRecurringTagFormSchema.safeParse({
       amountCents: value.amountCents,
       name: createName,
@@ -268,9 +240,13 @@ export function RecurringTagValueEditor({
     createMutation.mutate(parsed.data);
   };
 
-  const handleEditSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleCreateSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
+    submitCreate();
+  };
+
+  const submitEdit = () => {
     const parsed = recurringTagFormSchema.safeParse({
       name: selectedTagName,
     });
@@ -283,9 +259,13 @@ export function RecurringTagValueEditor({
     updateMutation.mutate(parsed.data.name);
   };
 
-  const handleAmountSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleEditSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
+    submitEdit();
+  };
+
+  const submitAmount = () => {
     const parsed = updateRecurringTagAmountFormSchema.safeParse({
       amountCents: value.amountCents,
     });
@@ -298,13 +278,106 @@ export function RecurringTagValueEditor({
     amountMutation.mutate(parsed.data.amountCents);
   };
 
+  const handleAmountSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    submitAmount();
+  };
+
+  const createControls = (
+    <>
+      <label className="grid gap-1 text-sm font-medium">
+        {newTagNameLabel}
+        <Input
+          disabled={isDisabled}
+          onChange={(event) => setCreateName(event.target.value)}
+          value={createName}
+        />
+      </label>
+      {createError ? (
+        <p role="alert" className="text-sm text-destructive">
+          {createError}
+        </p>
+      ) : null}
+      <Button
+        disabled={isDisabled}
+        onClick={surface === "inline" ? submitCreate : undefined}
+        type={surface === "inline" ? "button" : "submit"}
+      >
+        <Plus aria-hidden="true" />
+        Create recurring tag from value
+      </Button>
+    </>
+  );
+  const editControls = (
+    <>
+      <label className="grid gap-1 text-sm font-medium">
+        {selectedTagNameLabel}
+        <Input
+          disabled={!selectedTag || isDisabled}
+          onChange={(event) =>
+            setSelectedTagDraft({
+              name: event.target.value,
+              recurringTagId: selectedTag?.id ?? "",
+            })
+          }
+          value={selectedTagName}
+        />
+      </label>
+      {editError ? (
+        <p role="alert" className="text-sm text-destructive">
+          {editError}
+        </p>
+      ) : null}
+      <Button
+        disabled={!selectedTag || isDisabled}
+        onClick={surface === "inline" ? submitEdit : undefined}
+        type={surface === "inline" ? "button" : "submit"}
+        variant="secondary"
+      >
+        <Save aria-hidden="true" />
+        Save recurring tag
+      </Button>
+    </>
+  );
+  const amountControls = (
+    <>
+      {amountError ? (
+        <p role="alert" className="text-sm text-destructive">
+          {amountError}
+        </p>
+      ) : null}
+      <Button
+        disabled={!selectedTag || isDisabled}
+        onClick={surface === "inline" ? submitAmount : undefined}
+        type={surface === "inline" ? "button" : "submit"}
+        variant="outline"
+      >
+        <RefreshCcw aria-hidden="true" />
+        Update shared tag amount
+      </Button>
+      {summary ? (
+        <p aria-live="polite" className="text-sm text-muted-foreground">
+          {summary}
+        </p>
+      ) : null}
+    </>
+  );
+
   return (
     <section
-      className={cn("rounded-lg border bg-card p-5 text-card-foreground shadow-sm", className)}
+      className={cn(
+        surface === "card"
+          ? "rounded-lg border bg-card p-5 text-card-foreground shadow-sm"
+          : "grid gap-4 rounded-md border border-dashed p-3",
+        className,
+      )}
     >
-      <div className="mb-5 flex items-center gap-2">
+      <div className={cn("flex items-center gap-2", surface === "card" && "mb-5")}>
         <Tag aria-hidden="true" className="size-5 text-primary" />
-        <h2 className="text-xl font-semibold">Recurring Tags</h2>
+        <h2 className={cn(surface === "card" ? "text-xl" : "text-base", "font-semibold")}>
+          Recurring Tags
+        </h2>
       </div>
 
       {recurringTagsQuery.isError ? (
@@ -315,20 +388,23 @@ export function RecurringTagValueEditor({
 
       <div className="grid gap-5">
         <div className="grid gap-3">
-          <label className="grid gap-1 text-sm font-medium">
-            Value amount cents
-            <Input
-              disabled={isDisabled}
-              min={1}
-              onChange={(event) => handleAmountChange(event.target.value)}
-              step={1}
-              type="number"
-              value={value.amountCents === 0 ? "" : value.amountCents}
-            />
-          </label>
+          {showAmountInput ? (
+            <label className="grid gap-1 text-sm font-medium">
+              Value amount cents
+              <Input
+                disabled={isDisabled}
+                min={1}
+                onChange={(event) => handleAmountChange(event.target.value)}
+                step={1}
+                type="number"
+                value={value.amountCents === 0 ? "" : value.amountCents}
+              />
+            </label>
+          ) : null}
 
           <RecurringTagSelect
             disabled={isDisabled}
+            label={recurringTagLabel}
             onValueChange={handleSelectedTagChange}
             value={value.recurringValueTagId}
           />
@@ -361,67 +437,29 @@ export function RecurringTagValueEditor({
           ) : null}
         </div>
 
-        <form className="grid gap-3 border-t pt-5" onSubmit={handleCreateSubmit}>
-          <label className="grid gap-1 text-sm font-medium">
-            New recurring tag name
-            <Input
-              disabled={isDisabled}
-              onChange={(event) => setCreateName(event.target.value)}
-              value={createName}
-            />
-          </label>
-          {createError ? (
-            <p role="alert" className="text-sm text-destructive">
-              {createError}
-            </p>
-          ) : null}
-          <Button disabled={isDisabled} type="submit">
-            <Plus aria-hidden="true" />
-            Create recurring tag from value
-          </Button>
-        </form>
+        {surface === "inline" ? (
+          <div className="grid gap-3 border-t pt-5">{createControls}</div>
+        ) : (
+          <form className="grid gap-3 border-t pt-5" onSubmit={handleCreateSubmit}>
+            {createControls}
+          </form>
+        )}
 
-        <form className="grid gap-3 border-t pt-5" onSubmit={handleEditSubmit}>
-          <label className="grid gap-1 text-sm font-medium">
-            Selected tag name
-            <Input
-              disabled={!selectedTag || isDisabled}
-              onChange={(event) =>
-                setSelectedTagDraft({
-                  name: event.target.value,
-                  recurringTagId: selectedTag?.id ?? "",
-                })
-              }
-              value={selectedTagName}
-            />
-          </label>
-          {editError ? (
-            <p role="alert" className="text-sm text-destructive">
-              {editError}
-            </p>
-          ) : null}
-          <Button disabled={!selectedTag || isDisabled} type="submit" variant="secondary">
-            <Save aria-hidden="true" />
-            Save recurring tag
-          </Button>
-        </form>
+        {surface === "inline" ? (
+          <div className="grid gap-3 border-t pt-5">{editControls}</div>
+        ) : (
+          <form className="grid gap-3 border-t pt-5" onSubmit={handleEditSubmit}>
+            {editControls}
+          </form>
+        )}
 
-        <form className="grid gap-3 border-t pt-5" onSubmit={handleAmountSubmit}>
-          {amountError ? (
-            <p role="alert" className="text-sm text-destructive">
-              {amountError}
-            </p>
-          ) : null}
-          <Button disabled={!selectedTag || isDisabled} type="submit" variant="outline">
-            <RefreshCcw aria-hidden="true" />
-            Update shared tag amount
-          </Button>
-          {summary ? (
-            <p aria-live="polite" className="text-sm text-muted-foreground">
-              {summary}
-            </p>
-          ) : null}
-        </form>
+        {surface === "inline" ? (
+          <div className="grid gap-3 border-t pt-5">{amountControls}</div>
+        ) : (
+          <form className="grid gap-3 border-t pt-5" onSubmit={handleAmountSubmit}>
+            {amountControls}
+          </form>
+        )}
       </div>
     </section>
   );

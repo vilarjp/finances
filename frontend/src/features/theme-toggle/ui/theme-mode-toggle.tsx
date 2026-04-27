@@ -1,8 +1,8 @@
 import { Moon, Monitor, Sun } from "lucide-react";
 import type { ComponentProps } from "react";
 
-import { useTheme } from "@app/providers/theme-context";
 import type { ThemeMode } from "@shared/config/theme";
+import { useTheme } from "@shared/config/theme-context";
 import { cn } from "@shared/lib/utils";
 import { Button } from "@shared/ui/button";
 

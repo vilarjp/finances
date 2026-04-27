@@ -14,7 +14,6 @@ export {
   type UpdateRecurringTagAmountFormValues,
 } from "./model/forms";
 export {
-  RecurringTagSelect,
   RecurringTagValueEditor,
   type RecurringTagValueEditorValue,
 } from "./ui/recurring-tag-value-editor";

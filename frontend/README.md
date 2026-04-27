@@ -23,6 +23,7 @@ pnpm --filter @finances/frontend typecheck
 pnpm --filter @finances/frontend test
 pnpm --filter @finances/frontend build
 pnpm --filter @finances/frontend test:e2e
+pnpm --filter @finances/frontend test:e2e:full-stack
 ```
 
 Exact installed versions are resolved in the root `pnpm-lock.yaml`. Direct
@@ -94,6 +95,13 @@ pnpm --filter @finances/frontend test:e2e
 Playwright builds the app and serves the production preview at
 `http://127.0.0.1:4173`. In sandboxed environments, the preview server may need
 permission to bind the local port.
+
+The full-stack Playwright smoke test starts the real backend with a disposable
+Mongo memory replica set and serves the frontend at `http://127.0.0.1:4174`:
+
+```sh
+pnpm --filter @finances/frontend test:e2e:full-stack
+```
 
 ## Troubleshooting
 

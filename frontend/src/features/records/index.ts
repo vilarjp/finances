@@ -16,5 +16,5 @@ export {
 } from "./model/forms";
 export { useRecordClipboard } from "./model/record-clipboard-context";
 export { RecordClipboardProvider } from "./model/record-clipboard";
-export { RecordEditor } from "./ui/record-editor";
+export { RecordEditor, type RecurringValueControlsRenderProps } from "./ui/record-editor";
 export { RecordWorkspace } from "./ui/record-workspace";

@@ -1,9 +1,15 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, HttpResponse } from "msw";
+import { useState, type PropsWithChildren } from "react";
 
-import { App } from "@app/app";
 import { server } from "@shared/testing/test-server";
+
+import {
+  RecurringTagValueEditor,
+  type RecurringTagValueEditorValue,
+} from "./recurring-tag-value-editor";
 
 type TestRecurringTag = {
   id: string;
@@ -25,6 +31,30 @@ beforeEach(() => {
   window.history.pushState({}, "", "/");
 });
 
+function TestQueryProvider({ children }: PropsWithChildren) {
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            retry: false,
+          },
+        },
+      }),
+  );
+
+  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+}
+
+function TestRecurringTagValueEditor() {
+  const [value, setValue] = useState<RecurringTagValueEditorValue>({
+    amountCents: 0,
+    recurringValueTagId: "",
+  });
+
+  return <RecurringTagValueEditor onValueChange={setValue} value={value} />;
+}
+
 it("selects, creates, applies, edits, and unlinks recurring tags from the value editor", async () => {
   const user = userEvent.setup();
   const recurringTags: TestRecurringTag[] = [
@@ -39,16 +69,6 @@ it("selects, creates, applies, edits, and unlinks recurring tags from the value 
   ];
 
   server.use(
-    http.get("*/api/auth/me", () =>
-      HttpResponse.json({
-        user: {
-          id: "user-1",
-          name: "Ada Lovelace",
-          email: "ada@example.com",
-        },
-      }),
-    ),
-    http.get("*/api/categories", () => HttpResponse.json({ categories: [] })),
     http.get("*/api/recurring-tags", () => HttpResponse.json({ recurringTags })),
     http.post("*/api/recurring-tags", async ({ request }) => {
       const body = (await request.json()) as Pick<TestRecurringTag, "amountCents" | "name">;
@@ -101,9 +121,12 @@ it("selects, creates, applies, edits, and unlinks recurring tags from the value 
     }),
   );
 
-  render(<App />);
+  render(
+    <TestQueryProvider>
+      <TestRecurringTagValueEditor />
+    </TestQueryProvider>,
+  );
 
-  expect(await screen.findByRole("heading", { name: "Personal Finance" })).toBeInTheDocument();
   expect(await screen.findByRole("heading", { name: "Recurring Tags" })).toBeInTheDocument();
 
   await user.clear(screen.getByLabelText("Value amount cents"));

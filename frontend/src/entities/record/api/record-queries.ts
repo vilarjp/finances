@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import type { QueryClient } from "@tanstack/react-query";
 
-import { reportsQueryKey } from "@entities/report/api/report-queries";
+import { reportsQueryKey } from "@entities/report";
 import { apiGet } from "@shared/api/http-client";
 
 import type { FinanceRecord } from "../model/types";

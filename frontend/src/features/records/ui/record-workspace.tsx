@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ClipboardCopy, ClipboardPaste, Edit3, Plus, Trash2 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import {
@@ -10,15 +10,14 @@ import {
   type FinanceRecord,
 } from "@entities/record";
 import { getApiErrorMessage } from "@shared/api/errors";
-import { formatFinanceDate } from "@shared/lib/date";
+import { formatFinanceDate, formatFinanceMonth, getFinanceMonthDateRange } from "@shared/lib/date";
 import { Button } from "@shared/ui/button";
 import { Input } from "@shared/ui/input";
 
 import { createRecord, deleteRecord, pasteRecord, updateRecord } from "../api/record-api";
 import type { RecordMutationPayload } from "../model/forms";
 import { useRecordClipboard } from "../model/record-clipboard-context";
-import { RecordClipboardProvider } from "../model/record-clipboard";
-import { RecordEditor } from "./record-editor";
+import { RecordEditor, type RecurringValueControlsRenderProps } from "./record-editor";
 
 type EditorState =
   | {
@@ -33,15 +32,19 @@ type CreateRecordLocationState = {
   createRecordRequestId?: unknown;
 };
 
+type RecordWorkspaceProps = {
+  renderRecurringValueControls?: (props: RecurringValueControlsRenderProps) => ReactNode;
+};
+
 function getCurrentMonthRange() {
-  const today = new Date();
-  const from = new Date(today.getFullYear(), today.getMonth(), 1);
-  const to = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+  const now = new Date();
+  const today = formatFinanceDate(now);
+  const { from, to } = getFinanceMonthDateRange(formatFinanceMonth(now));
 
   return {
-    from: formatFinanceDate(from),
-    today: formatFinanceDate(today),
-    to: formatFinanceDate(to),
+    from,
+    today,
+    to,
   };
 }
 
@@ -59,7 +62,7 @@ function getCreateRecordRequestId(state: unknown) {
   return typeof createRecordRequestId === "number" ? createRecordRequestId : null;
 }
 
-function RecordWorkspaceContent() {
+export function RecordWorkspace({ renderRecurringValueControls }: RecordWorkspaceProps) {
   const queryClient = useQueryClient();
   const location = useLocation();
   const navigate = useNavigate();
@@ -247,6 +250,7 @@ function RecordWorkspaceContent() {
           onSubmit={handleEditorSubmit}
           record={editorState.mode === "edit" ? editorState.record : undefined}
           serverError={editorError}
+          {...(renderRecurringValueControls ? { renderRecurringValueControls } : {})}
         />
       ) : null}
 
@@ -310,13 +314,5 @@ function RecordWorkspaceContent() {
         ))}
       </div>
     </section>
-  );
-}
-
-export function RecordWorkspace() {
-  return (
-    <RecordClipboardProvider>
-      <RecordWorkspaceContent />
-    </RecordClipboardProvider>
   );
 }

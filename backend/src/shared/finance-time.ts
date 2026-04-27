@@ -229,6 +229,22 @@ export function createFinanceInstant(input: CreateFinanceInstantInput) {
   );
 }
 
+export function createFinanceInstantPreservingLocalTime(date: string, instant: Date) {
+  const parsedDate = parseFinanceDate(date);
+  const validInstant = assertValidInstant(instant);
+  const financeLocalInstant = new Date(validInstant.getTime() + financeOffsetMilliseconds);
+
+  return createUtcInstantFromFinanceLocal(
+    parsedDate.year,
+    parsedDate.month,
+    parsedDate.day,
+    financeLocalInstant.getUTCHours(),
+    financeLocalInstant.getUTCMinutes(),
+    financeLocalInstant.getUTCSeconds(),
+    financeLocalInstant.getUTCMilliseconds(),
+  );
+}
+
 export function getFinanceMonthBoundaries(month: string): FinanceMonthBoundaries {
   const parsedMonth = parseFinanceMonth(month);
   const endYear = parsedMonth.month === 12 ? parsedMonth.year + 1 : parsedMonth.year;
@@ -269,4 +285,13 @@ export function formatFinanceDate(instant: Date) {
 
 export function formatFinanceMonth(instant: Date) {
   return deriveFinanceDateParts(instant).financeMonth;
+}
+
+export function formatFinanceTime(instant: Date) {
+  const validInstant = assertValidInstant(instant);
+  const financeLocalInstant = new Date(validInstant.getTime() + financeOffsetMilliseconds);
+  const hour = financeLocalInstant.getUTCHours();
+  const minute = financeLocalInstant.getUTCMinutes();
+
+  return `${formatTwoDigit(hour)}:${formatTwoDigit(minute)}`;
 }

@@ -5,6 +5,7 @@ export const defaultMongoDbUri = "mongodb://localhost:27017/finances?replicaSet=
 const logLevelSchema = z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]);
 const nodeEnvSchema = z.enum(["development", "test", "production"]);
 const defaultDevelopmentFrontendOrigins = ["http://127.0.0.1:5173", "http://localhost:5173"];
+const placeholderCookieSecrets = new Set(["replace-with-at-least-32-character-secret"]);
 
 const envSchema = z.object({
   NODE_ENV: nodeEnvSchema.default("development"),
@@ -42,6 +43,8 @@ function parseFrontendOrigins(value: string | undefined, nodeEnv: AppConfig["nod
       .filter((origin) => origin.length > 0);
   } else if (nodeEnv === "development") {
     rawOrigins = defaultDevelopmentFrontendOrigins;
+  } else if (nodeEnv === "production") {
+    throw new Error("Invalid backend environment: FRONTEND_ORIGINS is required in production.");
   } else {
     rawOrigins = [];
   }
@@ -54,11 +57,32 @@ function parseFrontendOrigins(value: string | undefined, nodeEnv: AppConfig["nod
         throw new Error("Invalid origin.");
       }
 
+      if (nodeEnv === "production" && url.protocol !== "https:") {
+        throw new Error("Production origins must use HTTPS.");
+      }
+
       return origin;
     } catch {
       throw new Error(`Invalid backend environment: FRONTEND_ORIGINS: Invalid origin ${origin}`);
     }
   });
+}
+
+function assertProductionEnvironment(
+  env: NodeJS.ProcessEnv | Record<string, string | undefined>,
+  parsed: z.infer<typeof envSchema>,
+) {
+  if (parsed.NODE_ENV !== "production") {
+    return;
+  }
+
+  if (!env.MONGODB_URI || parsed.MONGODB_URI === defaultMongoDbUri) {
+    throw new Error("Invalid backend environment: MONGODB_URI is required in production.");
+  }
+
+  if (placeholderCookieSecrets.has(parsed.COOKIE_SECRET)) {
+    throw new Error("Invalid backend environment: COOKIE_SECRET must not use a placeholder.");
+  }
 }
 
 export function parseEnv(
@@ -73,6 +97,8 @@ export function parseEnv(
 
     throw new Error(`Invalid backend environment: ${issues}`);
   }
+
+  assertProductionEnvironment(env, parsed.data);
 
   return {
     nodeEnv: parsed.data.NODE_ENV,
