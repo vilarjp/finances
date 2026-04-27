@@ -47,11 +47,12 @@ runtime and development dependencies are listed in `backend/package.json`.
 
 The backend uses signed, httpOnly cookies:
 
-- `__Host-finance_access`
-- `__Host-finance_refresh`
+- Local HTTP development and tests: `finance_access` and `finance_refresh`
+- Production HTTPS: `__Host-finance_access` and `__Host-finance_refresh`
 
-Cookies use `Path=/`, SameSite=Lax, and Secure in production. Development keeps
-Secure off so local HTTP testing works.
+Cookies use `Path=/` and SameSite=Lax. Production adds `Secure` and the
+`__Host-` prefix; development keeps Secure off and uses unprefixed names so
+plain local HTTP testing works in browsers.
 
 Mutating authenticated routes require the `X-CSRF-Token` header. Fetch a token
 from `GET /api/auth/csrf` after login or signup. `POST /api/auth/refresh`

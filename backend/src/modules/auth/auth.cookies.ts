@@ -2,9 +2,29 @@ import type { FastifyReply, FastifyRequest } from "fastify";
 
 import type { AppConfig } from "../../config/env.js";
 import { HttpError } from "../../shared/errors.js";
-import { authCookieNames, authDurations } from "./auth.constants.js";
+import { authDurations } from "./auth.constants.js";
 
-type AuthCookieName = (typeof authCookieNames)[keyof typeof authCookieNames];
+const secureAuthCookieNames = {
+  access: "__Host-finance_access",
+  refresh: "__Host-finance_refresh",
+} as const;
+
+const localAuthCookieNames = {
+  access: "finance_access",
+  refresh: "finance_refresh",
+} as const;
+
+export type AuthCookieName =
+  | (typeof secureAuthCookieNames)[keyof typeof secureAuthCookieNames]
+  | (typeof localAuthCookieNames)[keyof typeof localAuthCookieNames];
+
+function shouldUseSecureCookies(config: AppConfig) {
+  return config.nodeEnv === "production";
+}
+
+export function getAuthCookieNames(config: AppConfig) {
+  return shouldUseSecureCookies(config) ? secureAuthCookieNames : localAuthCookieNames;
+}
 
 function createCookieOptions(config: AppConfig, maxAge: number) {
   return {
@@ -12,7 +32,7 @@ function createCookieOptions(config: AppConfig, maxAge: number) {
     maxAge,
     path: "/",
     sameSite: "lax" as const,
-    secure: config.nodeEnv === "production",
+    secure: shouldUseSecureCookies(config),
     signed: true,
   };
 }
@@ -27,27 +47,28 @@ export function setAuthCookies(
   config: AppConfig,
   cookies: AuthSessionCookies,
 ) {
+  const cookieNames = getAuthCookieNames(config);
+
   reply
     .setCookie(
-      authCookieNames.access,
+      cookieNames.access,
       cookies.accessToken,
       createCookieOptions(config, authDurations.accessTokenSeconds),
     )
     .setCookie(
-      authCookieNames.refresh,
+      cookieNames.refresh,
       cookies.refreshToken,
       createCookieOptions(config, authDurations.refreshTokenSeconds),
     );
 }
 
 export function clearAuthCookies(reply: FastifyReply, config: AppConfig) {
+  const cookieNames = getAuthCookieNames(config);
+
   reply
+    .clearCookie(cookieNames.access, createCookieOptions(config, authDurations.accessTokenSeconds))
     .clearCookie(
-      authCookieNames.access,
-      createCookieOptions(config, authDurations.accessTokenSeconds),
-    )
-    .clearCookie(
-      authCookieNames.refresh,
+      cookieNames.refresh,
       createCookieOptions(config, authDurations.refreshTokenSeconds),
     );
 }

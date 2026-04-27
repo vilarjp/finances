@@ -79,7 +79,7 @@ export async function createApp(options: CreateAppOptions = {}): Promise<Fastify
     app.decorate("financeDb", financeDb);
     const authService = new AuthService(financeDb, config);
 
-    registerAuthMiddleware(app, authService);
+    registerAuthMiddleware(app, authService, config);
     app.addHook("onClose", async () => {
       if (closeOnAppClose) {
         await financeDb.close();

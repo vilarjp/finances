@@ -7,12 +7,13 @@ React Hook Form, Zod, Recharts, and Feature-Sliced Design.
 ## Development
 
 ```sh
+cp frontend/.env.example frontend/.env
 pnpm --filter @finances/frontend dev
 ```
 
-The dev server listens on `http://127.0.0.1:5173`. The API base URL defaults to
-`/api`; set `VITE_API_BASE_URL` when the backend is not available behind that
-path.
+The dev server listens on `http://127.0.0.1:5173`. Local development needs
+`frontend/.env` with `VITE_API_BASE_URL=http://127.0.0.1:3000/api` so browser
+requests reach the backend.
 
 Useful commands:
 
@@ -98,6 +99,9 @@ permission to bind the local port.
 
 - If API calls fail locally, confirm the backend is running and that
   `VITE_API_BASE_URL` matches the backend route prefix.
+- With `VITE_API_BASE_URL=http://127.0.0.1:3000/api`, open the frontend on
+  `http://127.0.0.1:5173` as well; mixing `localhost` and `127.0.0.1` can
+  prevent SameSite cookies from being sent.
 - If CORS blocks browser requests, update `FRONTEND_ORIGINS` in `backend/.env`
   with the exact frontend origin.
 - If the UI appears to keep an old session in another tab, refresh the tab; auth

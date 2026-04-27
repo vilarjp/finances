@@ -1,8 +1,3 @@
-export const authCookieNames = {
-  access: "__Host-finance_access",
-  refresh: "__Host-finance_refresh",
-} as const;
-
 export const csrfHeaderName = "x-csrf-token";
 
 export const authDurations = {

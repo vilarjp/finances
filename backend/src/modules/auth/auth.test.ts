@@ -6,8 +6,10 @@ import { createApp } from "../../app.js";
 import type { DatabaseConnection } from "../../db/index.js";
 import { createTestDatabase, type TestDatabase } from "../../test/mongodb-memory.js";
 
-const accessCookieName = "__Host-finance_access";
-const refreshCookieName = "__Host-finance_refresh";
+const localAccessCookieName = "finance_access";
+const localRefreshCookieName = "finance_refresh";
+const secureAccessCookieName = "__Host-finance_access";
+const secureRefreshCookieName = "__Host-finance_refresh";
 const testCookieSecret = "test-cookie-secret-that-is-long-enough-for-auth";
 
 type ResponseWithHeaders = {
@@ -130,7 +132,7 @@ async function getCsrfToken(appInstance: FastifyInstance, cookieHeader: string) 
 }
 
 describe("auth routes", () => {
-  it("signs up a user, sets host-prefixed cookies on Path=/, and returns the current user", async () => {
+  it("signs up a user, sets local HTTP cookies on Path=/, and returns the current user", async () => {
     const { app: appInstance } = await createAuthApp();
 
     const signupResponse = await signUp(appInstance, {
@@ -148,6 +150,12 @@ describe("auth routes", () => {
     });
 
     const signupBody = signupResponse.json<{ user: Record<string, unknown> }>();
+    const accessCookie = setCookies.find((cookie) =>
+      cookie.startsWith(`${localAccessCookieName}=`),
+    );
+    const refreshCookie = setCookies.find((cookie) =>
+      cookie.startsWith(`${localRefreshCookieName}=`),
+    );
 
     expect(signupResponse.statusCode).toBe(201);
     expect(signupBody).toMatchObject({
@@ -157,12 +165,10 @@ describe("auth routes", () => {
       },
     });
     expect(signupBody.user).not.toHaveProperty("passwordHash");
-    expect(setCookies.find((cookie) => cookie.startsWith(`${accessCookieName}=`))).toContain(
-      "Path=/",
-    );
-    expect(setCookies.find((cookie) => cookie.startsWith(`${refreshCookieName}=`))).toContain(
-      "Path=/",
-    );
+    expect(accessCookie).toContain("Path=/");
+    expect(accessCookie).not.toContain("Secure");
+    expect(refreshCookie).toContain("Path=/");
+    expect(refreshCookie).not.toContain("Secure");
     expect(csrfToken).toEqual(expect.any(String));
     expect(meResponse.statusCode).toBe(200);
     expect(meResponse.json()).toMatchObject({
@@ -170,6 +176,33 @@ describe("auth routes", () => {
         email: "ada@example.com",
       },
     });
+  });
+
+  it("sets host-prefixed Secure cookies in production", async () => {
+    const { app: appInstance } = await createAuthApp({
+      NODE_ENV: "production",
+    });
+
+    const signupResponse = await signUp(appInstance, {
+      email: "secure@example.com",
+    });
+    const setCookies = getSetCookieHeaders(signupResponse);
+    const accessCookie = setCookies.find((cookie) =>
+      cookie.startsWith(`${secureAccessCookieName}=`),
+    );
+    const refreshCookie = setCookies.find((cookie) =>
+      cookie.startsWith(`${secureRefreshCookieName}=`),
+    );
+
+    expect(signupResponse.statusCode).toBe(201);
+    expect(accessCookie).toContain("Path=/");
+    expect(accessCookie).toContain("Secure");
+    expect(refreshCookie).toContain("Path=/");
+    expect(refreshCookie).toContain("Secure");
+    expect(setCookies.some((cookie) => cookie.startsWith(`${localAccessCookieName}=`))).toBe(false);
+    expect(setCookies.some((cookie) => cookie.startsWith(`${localRefreshCookieName}=`))).toBe(
+      false,
+    );
   });
 
   it("rejects duplicate sign-up emails and invalid login credentials", async () => {
@@ -333,8 +366,8 @@ describe("auth routes", () => {
     expect(logoutResponse.statusCode).toBe(204);
     expect(getSetCookieHeaders(logoutResponse)).toEqual(
       expect.arrayContaining([
-        expect.stringMatching(new RegExp(`^${accessCookieName}=;.*Path=/`)),
-        expect.stringMatching(new RegExp(`^${refreshCookieName}=;.*Path=/`)),
+        expect.stringMatching(new RegExp(`^${localAccessCookieName}=;.*Path=/`)),
+        expect.stringMatching(new RegExp(`^${localRefreshCookieName}=;.*Path=/`)),
       ]),
     );
     expect(refreshAfterLogoutResponse.statusCode).toBe(401);
@@ -521,7 +554,7 @@ describe("auth routes", () => {
       method: "GET",
       url: "/api/auth/me",
       headers: {
-        cookie: `${accessCookieName}=not-a-valid-token`,
+        cookie: `${localAccessCookieName}=not-a-valid-token`,
       },
     });
 

@@ -33,15 +33,16 @@ corepack enable
 corepack prepare pnpm@10.33.2 --activate
 pnpm install
 cp backend/.env.example backend/.env
+cp frontend/.env.example frontend/.env
 ```
 
 Edit `backend/.env` and replace `COOKIE_SECRET` with a local secret of at least
 32 characters. Keep real secrets out of git; `.env` files are ignored except for
 checked-in `.env.example` files.
 
-The frontend does not require an `.env` file for normal local development. It
-uses `/api` by default; set `VITE_API_BASE_URL` only when the API lives at a
-different origin.
+The frontend needs `frontend/.env` for local development because the Vite app
+and backend run on different origins. The default example sets
+`VITE_API_BASE_URL=http://127.0.0.1:3000/api`.
 
 ## Local MongoDB
 
@@ -129,11 +130,11 @@ Backend variables are documented in `backend/.env.example`.
 | `AUTH_RATE_LIMIT_WINDOW_MS`    | Auth rate-limit window in milliseconds.                                                |
 | `AUTH_RATE_LIMIT_MAX_ATTEMPTS` | Maximum signup, login, and refresh attempts per window.                                |
 
-Frontend variables:
+Frontend variables are documented in `frontend/.env.example`.
 
-| Variable            | Purpose                                    |
-| ------------------- | ------------------------------------------ |
-| `VITE_API_BASE_URL` | Optional API base URL. Defaults to `/api`. |
+| Variable            | Purpose                                                                        |
+| ------------------- | ------------------------------------------------------------------------------ |
+| `VITE_API_BASE_URL` | Browser API base URL. Use `http://127.0.0.1:3000/api` for default local setup. |
 
 ## Documentation Map
 

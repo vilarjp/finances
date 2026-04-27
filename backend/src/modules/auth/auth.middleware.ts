@@ -5,9 +5,10 @@ import type {
   preHandlerHookHandler,
 } from "fastify";
 
+import type { AppConfig } from "../../config/env.js";
 import { HttpError } from "../../shared/errors.js";
-import { authCookieNames, csrfHeaderName } from "./auth.constants.js";
-import { readSignedCookie } from "./auth.cookies.js";
+import { csrfHeaderName } from "./auth.constants.js";
+import { getAuthCookieNames, readSignedCookie } from "./auth.cookies.js";
 import { AuthService, type AuthenticatedUserContext } from "./auth.service.js";
 
 declare module "fastify" {
@@ -31,12 +32,17 @@ function getCsrfHeader(request: FastifyRequest) {
   return header;
 }
 
-export function registerAuthMiddleware(app: FastifyInstance, authService: AuthService) {
+export function registerAuthMiddleware(
+  app: FastifyInstance,
+  authService: AuthService,
+  config: AppConfig,
+) {
   app.decorateRequest("user", null);
   app.decorate("authenticate", async (request) => {
+    const cookieNames = getAuthCookieNames(config);
     const accessToken = readSignedCookie(
       request,
-      authCookieNames.access,
+      cookieNames.access,
       "ACCESS_TOKEN_MISSING",
       "ACCESS_TOKEN_INVALID",
     );

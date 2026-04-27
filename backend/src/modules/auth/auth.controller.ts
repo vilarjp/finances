@@ -1,9 +1,9 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 
 import type { AppConfig } from "../../config/env.js";
-import { authCookieNames } from "./auth.constants.js";
 import {
   clearAuthCookies,
+  getAuthCookieNames,
   readOptionalSignedCookie,
   readSignedCookie,
   setAuthCookies,
@@ -38,16 +38,19 @@ export class AuthController {
   };
 
   logout = async (request: FastifyRequest, reply: FastifyReply) => {
-    await this.authService.logout(readOptionalSignedCookie(request, authCookieNames.refresh));
+    const cookieNames = getAuthCookieNames(this.config);
+
+    await this.authService.logout(readOptionalSignedCookie(request, cookieNames.refresh));
     clearAuthCookies(reply, this.config);
 
     return reply.status(204).send(null);
   };
 
   refresh = async (request: FastifyRequest, reply: FastifyReply) => {
+    const cookieNames = getAuthCookieNames(this.config);
     const refreshToken = readSignedCookie(
       request,
-      authCookieNames.refresh,
+      cookieNames.refresh,
       "REFRESH_TOKEN_MISSING",
       "REFRESH_TOKEN_INVALID",
     );
