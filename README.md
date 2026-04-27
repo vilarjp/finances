@@ -112,6 +112,7 @@ Package-specific commands are available through filters, for example:
 ```sh
 pnpm --filter @finances/backend test
 pnpm --filter @finances/frontend test:e2e
+pnpm --filter @finances/frontend test:e2e:full-stack
 pnpm --filter @finances/frontend preview
 ```
 
@@ -129,6 +130,9 @@ Backend variables are documented in `backend/.env.example`.
 | `FRONTEND_ORIGINS`             | Comma-separated exact origins allowed for credentialed CORS.                           |
 | `AUTH_RATE_LIMIT_WINDOW_MS`    | Auth rate-limit window in milliseconds.                                                |
 | `AUTH_RATE_LIMIT_MAX_ATTEMPTS` | Maximum signup, login, and refresh attempts per window.                                |
+
+In production, the backend rejects the local default MongoDB URI, placeholder
+cookie secrets, empty frontend origins, and non-HTTPS frontend origins.
 
 Frontend variables are documented in `frontend/.env.example`.
 
@@ -166,6 +170,13 @@ layout, or critical browser behavior:
 
 ```sh
 pnpm --filter @finances/frontend test:e2e
+```
+
+Run the full-stack browser smoke path when changing auth, API base URL wiring,
+cookie/CSRF behavior, or persistence boundaries:
+
+```sh
+pnpm --filter @finances/frontend test:e2e:full-stack
 ```
 
 Backend integration tests use an in-memory MongoDB replica set. In sandboxed

@@ -1,9 +1,9 @@
 import { Plus, Save, Trash2, X } from "lucide-react";
-import { useState, type FormEvent, type KeyboardEvent } from "react";
+import { useState, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
 
+import { CategorySelect } from "@entities/category";
 import type { FinanceRecord } from "@entities/record";
-import { CategorySelect } from "@features/categories";
-import { RecurringTagSelect } from "@features/recurring-tags";
+import { RecurringTagSelect } from "@entities/recurring-tag";
 import { Button } from "@shared/ui/button";
 import { Input } from "@shared/ui/input";
 
@@ -25,7 +25,17 @@ type RecordEditorProps = {
   onCancel: () => void;
   onSubmit: (payload: RecordMutationPayload) => void;
   record?: FinanceRecord;
+  renderRecurringValueControls?: (props: RecurringValueControlsRenderProps) => ReactNode;
   serverError?: string;
+};
+
+export type RecurringValueControlsRenderProps = {
+  disabled: boolean | undefined;
+  labelPrefix: string;
+  onValueChange: (
+    value: Pick<RecordValueFormValues, "amountCents" | "recurringValueTagId">,
+  ) => void;
+  value: Pick<RecordValueFormValues, "amountCents" | "recurringValueTagId">;
 };
 
 function getInitialValues(record: FinanceRecord | undefined, defaultDate: string) {
@@ -111,6 +121,7 @@ function RecordValueFields({
   index,
   onChange,
   onRemove,
+  renderRecurringValueControls,
   value,
   canRemove,
 }: {
@@ -119,9 +130,26 @@ function RecordValueFields({
   index: number;
   onChange: (value: RecordValueFormValues) => void;
   onRemove: () => void;
+  renderRecurringValueControls?: (props: RecurringValueControlsRenderProps) => ReactNode;
   value: RecordValueFormValues;
 }) {
   const valueNumber = index + 1;
+  const recurringValueControls = renderRecurringValueControls?.({
+    disabled,
+    labelPrefix: `Value ${valueNumber}`,
+    onValueChange: (nextValue) => onChange({ ...value, ...nextValue }),
+    value: {
+      amountCents: value.amountCents,
+      recurringValueTagId: value.recurringValueTagId,
+    },
+  }) ?? (
+    <RecurringTagSelect
+      disabled={disabled}
+      label={`Value ${valueNumber} recurring tag`}
+      onValueChange={(recurringValueTagId) => onChange({ ...value, recurringValueTagId })}
+      value={value.recurringValueTagId}
+    />
+  );
 
   return (
     <fieldset className="grid gap-3 rounded-lg border p-4">
@@ -175,12 +203,7 @@ function RecordValueFields({
           onValueChange={(categoryId) => onChange({ ...value, categoryId })}
           value={value.categoryId}
         />
-        <RecurringTagSelect
-          disabled={disabled}
-          label={`Value ${valueNumber} recurring tag`}
-          onValueChange={(recurringValueTagId) => onChange({ ...value, recurringValueTagId })}
-          value={value.recurringValueTagId}
-        />
+        {recurringValueControls}
       </div>
     </fieldset>
   );
@@ -192,6 +215,7 @@ export function RecordEditor({
   onCancel,
   onSubmit,
   record,
+  renderRecurringValueControls,
   serverError,
 }: RecordEditorProps) {
   const [values, setValues] = useState<RecordFormValues>(() =>
@@ -336,6 +360,7 @@ export function RecordEditor({
               key={index}
               onChange={(nextValue) => updateValue(index, nextValue)}
               onRemove={() => removeValue(index)}
+              renderRecurringValueControls={renderRecurringValueControls}
               value={value}
             />
           ))}

@@ -1,4 +1,6 @@
-import { useMemo, useState, type PropsWithChildren } from "react";
+import { useEffect, useMemo, useState, type PropsWithChildren } from "react";
+
+import { apiSessionClearedEventName } from "@shared/api/http-client";
 
 import { recordToSnapshot } from "./forms";
 import {
@@ -8,11 +10,27 @@ import {
   type RecordClipboardContextValue,
 } from "./record-clipboard-context";
 
+const clipboardTtlMilliseconds = 30 * 60 * 1000;
+
+type StoredCopiedRecord = {
+  copiedRecord: CopiedRecord;
+  expiresAt: number;
+  userId: string;
+};
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
-function readStoredCopiedRecord(): CopiedRecord | null {
+function removeStoredCopiedRecord() {
+  try {
+    window.sessionStorage.removeItem(recordClipboardStorageKey);
+  } catch {
+    return;
+  }
+}
+
+function readStoredCopiedRecord(userId: string): CopiedRecord | null {
   try {
     const storedValue = window.sessionStorage.getItem(recordClipboardStorageKey);
 
@@ -22,38 +40,75 @@ function readStoredCopiedRecord(): CopiedRecord | null {
 
     const parsed = JSON.parse(storedValue) as unknown;
 
-    if (
-      !isRecord(parsed) ||
-      typeof parsed.copiedAt !== "string" ||
-      typeof parsed.sourceRecordId !== "string" ||
-      !isRecord(parsed.sourceSnapshot)
-    ) {
+    if (!isRecord(parsed)) {
+      removeStoredCopiedRecord();
       return null;
     }
 
-    return parsed as CopiedRecord;
+    const storedRecord = parsed as Partial<StoredCopiedRecord>;
+    const copiedRecordCandidate = storedRecord.copiedRecord;
+
+    if (
+      storedRecord.userId !== userId ||
+      typeof storedRecord.expiresAt !== "number" ||
+      storedRecord.expiresAt <= Date.now() ||
+      !isRecord(copiedRecordCandidate) ||
+      typeof copiedRecordCandidate.copiedAt !== "string" ||
+      typeof copiedRecordCandidate.sourceRecordId !== "string" ||
+      !isRecord(copiedRecordCandidate.sourceSnapshot)
+    ) {
+      removeStoredCopiedRecord();
+      return null;
+    }
+
+    return copiedRecordCandidate;
   } catch {
+    removeStoredCopiedRecord();
     return null;
   }
 }
 
-function storeCopiedRecord(copiedRecord: CopiedRecord | null) {
+function storeCopiedRecord(userId: string, copiedRecord: CopiedRecord | null) {
   try {
     if (copiedRecord) {
-      window.sessionStorage.setItem(recordClipboardStorageKey, JSON.stringify(copiedRecord));
+      const storedRecord: StoredCopiedRecord = {
+        copiedRecord,
+        expiresAt: Date.now() + clipboardTtlMilliseconds,
+        userId,
+      };
+
+      window.sessionStorage.setItem(recordClipboardStorageKey, JSON.stringify(storedRecord));
       return;
     }
 
-    window.sessionStorage.removeItem(recordClipboardStorageKey);
+    removeStoredCopiedRecord();
   } catch {
     return;
   }
 }
 
-export function RecordClipboardProvider({ children }: PropsWithChildren) {
+type RecordClipboardProviderProps = PropsWithChildren<{
+  userId: string;
+}>;
+
+export function RecordClipboardProvider({ children, userId }: RecordClipboardProviderProps) {
   const [copiedRecord, setCopiedRecord] = useState<CopiedRecord | null>(() =>
-    readStoredCopiedRecord(),
+    readStoredCopiedRecord(userId),
   );
+
+  useEffect(() => {
+    const clearClipboard = () => {
+      setCopiedRecord(null);
+      removeStoredCopiedRecord();
+    };
+
+    globalThis.addEventListener?.(apiSessionClearedEventName, clearClipboard);
+
+    return () => {
+      clearClipboard();
+      globalThis.removeEventListener?.(apiSessionClearedEventName, clearClipboard);
+    };
+  }, []);
 
   const value = useMemo<RecordClipboardContextValue>(
     () => ({
@@ -66,14 +121,14 @@ export function RecordClipboardProvider({ children }: PropsWithChildren) {
         };
 
         setCopiedRecord(nextCopiedRecord);
-        storeCopiedRecord(nextCopiedRecord);
+        storeCopiedRecord(userId, nextCopiedRecord);
       },
       clearCopiedRecord: () => {
         setCopiedRecord(null);
-        storeCopiedRecord(null);
+        storeCopiedRecord(userId, null);
       },
     }),
-    [copiedRecord],
+    [copiedRecord, userId],
   );
 
   return (

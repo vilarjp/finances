@@ -212,9 +212,13 @@ it("validates the record editor, manages values, and refreshes records after cre
 
   await user.type(screen.getByLabelText("Record description"), "April income");
   await user.type(screen.getByLabelText("Value 1 label"), "Salary");
-  await user.type(screen.getByLabelText("Value 1 amount cents"), "300000");
+  await user.type(screen.getByLabelText("Value 1 amount cents"), "1");
   await user.selectOptions(screen.getByLabelText("Value 1 category"), "category-groceries");
   await user.selectOptions(screen.getByLabelText("Value 1 recurring tag"), "tag-salary");
+  await user.click(screen.getByRole("button", { name: "Apply stored amount" }));
+
+  expect(screen.getByLabelText("Value 1 amount cents")).toHaveValue(300000);
+
   await user.click(screen.getByRole("button", { name: "Add value" }));
 
   expect(screen.getByLabelText("Value 2 label")).toBeInTheDocument();

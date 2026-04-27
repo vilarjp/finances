@@ -1,5 +1,6 @@
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "/api";
 const csrfHeaderName = "X-CSRF-Token";
+export const apiSessionClearedEventName = "personal-finance-session-cleared";
 
 interface ApiRequestOptions {
   allowedStatuses?: number[];
@@ -145,6 +146,8 @@ function clearCsrfToken(shouldBroadcast: boolean) {
   if (shouldBroadcast) {
     broadcastAuthMessage({ type: "session-cleared" });
   }
+
+  globalThis.dispatchEvent?.(new Event(apiSessionClearedEventName));
 }
 
 export function clearApiSession(options: { broadcast?: boolean } = {}) {

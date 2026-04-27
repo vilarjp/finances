@@ -7,7 +7,7 @@ import type {
   RecordType,
   RecordValueDocument,
 } from "../../db/index.js";
-import type { RecordValueInput } from "./records.schemas.js";
+import type { RecordValueInput, UpdateRecordValueInput } from "./records.schemas.js";
 
 export type CreateRecordDocumentInput = {
   userId: ObjectId;
@@ -34,21 +34,49 @@ export type UpdateRecordDocumentInput = {
   description: string;
   fontColor: string;
   backgroundColor: string;
-  values?: RecordValueInput[];
+  existingValues: RecordValueDocument[];
+  values?: UpdateRecordValueInput[];
   now: Date;
 };
 
-function toRecordValueDocument(value: RecordValueInput, now: Date): RecordValueDocument {
+function toRecordValueDocument(
+  value: RecordValueInput,
+  now: Date,
+  existingValue?: RecordValueDocument,
+): RecordValueDocument {
   return {
-    _id: new ObjectId(),
+    _id: existingValue?._id ?? new ObjectId(),
     label: value.label.trim(),
     amountCents: value.amountCents,
     sortOrder: value.sortOrder,
-    createdAt: now,
+    createdAt: existingValue?.createdAt ?? now,
     updatedAt: now,
     ...(value.categoryId ? { categoryId: value.categoryId } : {}),
     ...(value.recurringValueTagId ? { recurringValueTagId: value.recurringValueTagId } : {}),
   };
+}
+
+function toUpdatedRecordValueDocuments(
+  values: readonly UpdateRecordValueInput[],
+  existingValues: readonly RecordValueDocument[],
+  now: Date,
+) {
+  const existingValuesById = new Map(
+    existingValues.map((value) => [value._id.toHexString(), value] as const),
+  );
+  const existingValuesBySortOrder = new Map(
+    existingValues.map((value) => [value.sortOrder, value] as const),
+  );
+
+  return values.map((value) =>
+    toRecordValueDocument(
+      value,
+      now,
+      value.id
+        ? existingValuesById.get(value.id.toHexString())
+        : existingValuesBySortOrder.get(value.sortOrder),
+    ),
+  );
 }
 
 export class RecordsRepository {
@@ -113,7 +141,7 @@ export class RecordsRepository {
     };
 
     if (input.values !== undefined) {
-      $set.values = input.values.map((value) => toRecordValueDocument(value, input.now));
+      $set.values = toUpdatedRecordValueDocuments(input.values, input.existingValues, input.now);
     }
 
     return this.connection.collections.records.findOneAndUpdate(

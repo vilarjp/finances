@@ -1,8 +1,17 @@
 import type { ObjectId } from "mongodb";
 
-import type { DatabaseConnection, ExpenseKind, RecordType } from "../../db/index.js";
+import type {
+  DatabaseConnection,
+  ExpenseKind,
+  RecordDocument,
+  RecordType,
+} from "../../db/index.js";
 import { validationError, notFoundError } from "../../shared/errors.js";
-import { createFinanceInstant, deriveFinanceDateParts } from "../../shared/finance-time.js";
+import {
+  createFinanceInstant,
+  createFinanceInstantPreservingLocalTime,
+  deriveFinanceDateParts,
+} from "../../shared/finance-time.js";
 import { RecordsRepository } from "./records.repository.js";
 import type {
   CreateRecordInput,
@@ -10,6 +19,7 @@ import type {
   RecordRangeQuery,
   RecordSnapshotInput,
   RecordValueInput,
+  UpdateRecordValueInput,
   UpdateRecordInput,
 } from "./records.schemas.js";
 
@@ -49,9 +59,9 @@ function createRecordInstant(date: string, time?: string | null) {
   });
 }
 
-function getUniqueObjectIds(
-  values: readonly RecordValueInput[],
-  selectId: (value: RecordValueInput) => ObjectId | undefined,
+function getUniqueObjectIds<TValue>(
+  values: readonly TValue[],
+  selectId: (value: TValue) => ObjectId | undefined,
 ) {
   const idsByHex = new Map<string, ObjectId>();
 
@@ -70,8 +80,29 @@ function getMissingIds(ids: readonly ObjectId[], ownedIds: ReadonlySet<string>) 
   return ids.map((id) => id.toHexString()).filter((id) => !ownedIds.has(id));
 }
 
+function getSubmittedValueIds(values: readonly UpdateRecordValueInput[]) {
+  return getUniqueObjectIds(values, (value) => value.id);
+}
+
 function getRecordRangeLengthDays(from: Date, to: Date) {
   return Math.floor((to.getTime() - from.getTime()) / millisecondsPerDay) + 1;
+}
+
+function resolveUpdateEffectiveAt(existingRecord: RecordDocument, input: UpdateRecordInput) {
+  const updatesEffectiveAt =
+    Object.hasOwn(input, "effectiveDate") || Object.hasOwn(input, "effectiveTime");
+
+  if (!updatesEffectiveAt) {
+    return existingRecord.effectiveAt;
+  }
+
+  const effectiveDate = input.effectiveDate ?? existingRecord.financeDate;
+
+  if (Object.hasOwn(input, "effectiveTime")) {
+    return createRecordInstant(effectiveDate, input.effectiveTime);
+  }
+
+  return createFinanceInstantPreservingLocalTime(effectiveDate, existingRecord.effectiveAt);
 }
 
 export class RecordsService {
@@ -152,9 +183,7 @@ export class RecordsService {
     const existingRecord = await this.getRecord(userId, recordId);
     const updatesEffectiveAt =
       Object.hasOwn(input, "effectiveDate") || Object.hasOwn(input, "effectiveTime");
-    const effectiveAt = updatesEffectiveAt
-      ? createRecordInstant(input.effectiveDate ?? existingRecord.financeDate, input.effectiveTime)
-      : existingRecord.effectiveAt;
+    const effectiveAt = resolveUpdateEffectiveAt(existingRecord, input);
     const financeDateParts = updatesEffectiveAt
       ? deriveFinanceDateParts(effectiveAt)
       : {
@@ -168,6 +197,7 @@ export class RecordsService {
     );
 
     if (input.values !== undefined) {
+      this.assertValueIdsBelongToRecord(existingRecord, input.values);
       await this.assertValueReferencesBelongToUser(userId, input.values);
     }
 
@@ -182,6 +212,7 @@ export class RecordsService {
       description: input.description ?? existingRecord.description,
       fontColor: input.fontColor ?? existingRecord.fontColor,
       backgroundColor: input.backgroundColor ?? existingRecord.backgroundColor,
+      existingValues: existingRecord.values,
       ...(input.values !== undefined ? { values: input.values } : {}),
       now,
     });
@@ -259,6 +290,21 @@ export class RecordsService {
       throw validationError("Record value references must belong to the authenticated user.", {
         missingCategoryIds,
         missingRecurringTagIds,
+      });
+    }
+  }
+
+  private assertValueIdsBelongToRecord(
+    existingRecord: RecordDocument,
+    values: readonly UpdateRecordValueInput[],
+  ) {
+    const submittedValueIds = getSubmittedValueIds(values);
+    const existingValueIds = new Set(existingRecord.values.map((value) => value._id.toHexString()));
+    const missingValueIds = getMissingIds(submittedValueIds, existingValueIds);
+
+    if (missingValueIds.length > 0) {
+      throw validationError("Record value ids must belong to the updated record.", {
+        missingValueIds,
       });
     }
   }

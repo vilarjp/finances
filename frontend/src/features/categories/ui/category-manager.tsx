@@ -1,12 +1,11 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Palette, Plus, Save, Trash2 } from "lucide-react";
-import { useId, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 
-import { categoriesQueryKey, useCategoriesQuery } from "@entities/category";
+import { CategorySelect, categoriesQueryKey, useCategoriesQuery } from "@entities/category";
 import type { Category } from "@entities/category";
 import { invalidateFinanceData } from "@entities/record";
 import { getApiErrorMessage } from "@shared/api/errors";
-import { cn } from "@shared/lib/utils";
 import { Button } from "@shared/ui/button";
 import { Input } from "@shared/ui/input";
 
@@ -16,14 +15,6 @@ import {
   defaultCategoryFormValues,
   type CategoryFormValues,
 } from "../model/forms";
-
-type CategorySelectProps = {
-  className?: string;
-  disabled?: boolean;
-  label?: string;
-  onValueChange: (categoryId: string) => void;
-  value: string;
-};
 
 function getErrorMessage(error: unknown) {
   return getApiErrorMessage(error, "Category request failed.");
@@ -77,38 +68,6 @@ function CategoryColorInputs({
         />
       </label>
     </div>
-  );
-}
-
-export function CategorySelect({
-  className,
-  disabled = false,
-  label = "Category",
-  onValueChange,
-  value,
-}: CategorySelectProps) {
-  const selectId = useId();
-  const categoriesQuery = useCategoriesQuery();
-  const categories = categoriesQuery.data ?? [];
-
-  return (
-    <label className={cn("grid gap-1 text-sm font-medium", className)} htmlFor={selectId}>
-      {label}
-      <select
-        className="border-input bg-background ring-offset-background focus-visible:ring-ring h-10 w-full rounded-md border px-3 py-2 text-base outline-none transition-colors focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
-        disabled={disabled || categoriesQuery.isPending}
-        id={selectId}
-        onChange={(event) => onValueChange(event.target.value)}
-        value={value}
-      >
-        <option value="">Uncategorized</option>
-        {categories.map((category) => (
-          <option key={category.id} value={category.id}>
-            {category.name}
-          </option>
-        ))}
-      </select>
-    </label>
   );
 }
 

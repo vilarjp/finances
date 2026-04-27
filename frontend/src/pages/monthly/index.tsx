@@ -15,15 +15,16 @@ import { useMonthlyReportQuery } from "@entities/report";
 import type { FinanceRow, MonthlyReport, ReportRecord } from "@entities/report";
 import {
   pasteRecord,
-  RecordClipboardProvider,
   RecordEditor,
+  type RecurringValueControlsRenderProps,
   type RecordMutationPayload,
   updateRecord,
   useRecordClipboard,
 } from "@features/records";
+import { RecurringTagValueEditor } from "@features/recurring-tags";
 import { FinanceTable } from "@widgets/finance-table";
 import { getApiErrorMessage } from "@shared/api/errors";
-import { formatFinanceDate } from "@shared/lib/date";
+import { formatFinanceMonth, getFinanceMonthDayCount } from "@shared/lib/date";
 import { formatMoneyCents } from "@shared/lib/money";
 import { Button } from "@shared/ui/button";
 import { Input } from "@shared/ui/input";
@@ -35,7 +36,7 @@ type EditorState = {
 const monthPattern = /^\d{4}-\d{2}$/u;
 
 function getCurrentFinanceMonth() {
-  return formatFinanceDate(new Date()).slice(0, 7);
+  return formatFinanceMonth(new Date());
 }
 
 function parseFinanceMonth(month: string) {
@@ -72,9 +73,9 @@ function formatMonthValue(year: number, monthIndex: number) {
 
 function shiftFinanceMonth(month: string, offset: number) {
   const parsed = parseFinanceMonth(month) ?? parseFinanceMonth(getCurrentFinanceMonth())!;
-  const date = new Date(parsed.year, parsed.monthIndex + offset, 1);
+  const date = new Date(Date.UTC(parsed.year, parsed.monthIndex + offset, 1));
 
-  return formatMonthValue(date.getFullYear(), date.getMonth());
+  return formatMonthValue(date.getUTCFullYear(), date.getUTCMonth());
 }
 
 function formatFinanceMonthLabel(month: string) {
@@ -97,7 +98,7 @@ function getMonthDates(month: string) {
     return [];
   }
 
-  const daysInMonth = new Date(parsed.year, parsed.monthIndex + 1, 0).getDate();
+  const daysInMonth = getFinanceMonthDayCount(month);
 
   return Array.from({ length: daysInMonth }, (_value, index) => {
     const day = String(index + 1).padStart(2, "0");
@@ -152,7 +153,25 @@ function getErrorMessage(error: unknown) {
   return getApiErrorMessage(error, "Monthly view request failed.");
 }
 
-function MonthlyPageContent() {
+function renderRecurringValueControls({
+  disabled,
+  labelPrefix,
+  onValueChange,
+  value,
+}: RecurringValueControlsRenderProps) {
+  return (
+    <RecurringTagValueEditor
+      disabled={Boolean(disabled)}
+      labelPrefix={labelPrefix}
+      onValueChange={onValueChange}
+      showAmountInput={false}
+      surface="inline"
+      value={value}
+    />
+  );
+}
+
+export function MonthlyPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const selectedMonth = normalizeFinanceMonth(searchParams.get("month"));
@@ -450,19 +469,12 @@ function MonthlyPageContent() {
               onCancel={() => setEditorState(null)}
               onSubmit={handleEditorSubmit}
               record={editorState.record}
+              renderRecurringValueControls={renderRecurringValueControls}
               serverError={editorError}
             />
           ) : null}
         </aside>
       </div>
     </main>
-  );
-}
-
-export function MonthlyPage() {
-  return (
-    <RecordClipboardProvider>
-      <MonthlyPageContent />
-    </RecordClipboardProvider>
   );
 }

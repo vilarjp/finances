@@ -5,7 +5,9 @@ import {
   FINANCE_TIME_ZONE,
   compareFinanceInstants,
   createFinanceInstant,
+  createFinanceInstantPreservingLocalTime,
   deriveFinanceDateParts,
+  formatFinanceTime,
   getFinanceMonthBoundaries,
   isAtOrAfterFinanceCutoff,
 } from "./finance-time.js";
@@ -30,6 +32,26 @@ describe("finance timezone utilities", () => {
     expect(createFinanceInstant({ date: "2026-04-25", time: "08:30" }).toISOString()).toBe(
       "2026-04-25T11:30:00.000Z",
     );
+  });
+
+  it("formats finance-local HH:mm from UTC instants", () => {
+    expect(formatFinanceTime(new Date("2026-04-25T11:30:00.000Z"))).toBe("08:30");
+    expect(formatFinanceTime(new Date("2026-04-26T02:59:59.999Z"))).toBe("23:59");
+  });
+
+  it("moves an instant to a new finance date while preserving exact local time", () => {
+    expect(
+      createFinanceInstantPreservingLocalTime(
+        "2026-04-26",
+        new Date("2026-04-25T11:30:15.123Z"),
+      ).toISOString(),
+    ).toBe("2026-04-26T11:30:15.123Z");
+    expect(
+      createFinanceInstantPreservingLocalTime(
+        "2026-04-26",
+        new Date("2026-04-26T02:59:59.999Z"),
+      ).toISOString(),
+    ).toBe("2026-04-27T02:59:59.999Z");
   });
 
   it("returns month boundary instants in finance-local time", () => {

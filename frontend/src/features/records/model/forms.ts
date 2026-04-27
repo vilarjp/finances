@@ -7,6 +7,7 @@ export type RecordClassification = "income" | "fixed-expense" | "daily-expense";
 export type RecordValueFormValues = {
   amountCents: number;
   categoryId: string;
+  id?: string;
   label: string;
   recurringValueTagId: string;
 };
@@ -26,6 +27,7 @@ export type RecordPayloadValue = {
   amountCents: number;
   sortOrder: number;
   categoryId?: string;
+  id?: string;
   recurringValueTagId?: string;
 };
 
@@ -53,6 +55,7 @@ export const amountCentsSchema = z
   .max(999_999_999, "Use 999999999 cents or fewer.");
 
 export const recordValueFormSchema = z.object({
+  id: z.string().optional(),
   label: z.string().trim().min(1, "Enter a value label.").max(120, "Use 120 characters or fewer."),
   amountCents: amountCentsSchema,
   categoryId: z.string(),
@@ -154,6 +157,7 @@ export function recordToFormValues(record: FinanceRecord): RecordFormValues {
     values: record.values.map((value) => ({
       amountCents: value.amountCents,
       categoryId: value.categoryId ?? "",
+      id: value.id,
       label: value.label,
       recurringValueTagId: value.recurringValueTagId ?? "",
     })),
@@ -191,6 +195,7 @@ export function formValuesToMutationPayload(values: RecordFormValues): RecordMut
       label: value.label.trim(),
       amountCents: value.amountCents,
       sortOrder: index,
+      ...(value.id ? { id: value.id } : {}),
       ...(optionalValue(value.categoryId) ? { categoryId: value.categoryId } : {}),
       ...(optionalValue(value.recurringValueTagId)
         ? { recurringValueTagId: value.recurringValueTagId }

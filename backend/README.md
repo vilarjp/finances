@@ -43,6 +43,9 @@ runtime and development dependencies are listed in `backend/package.json`.
 - `AUTH_RATE_LIMIT_WINDOW_MS` and `AUTH_RATE_LIMIT_MAX_ATTEMPTS`: in-memory
   brute-force protection for public auth endpoints.
 
+Production startup requires an explicit non-default `MONGODB_URI`, a non-placeholder
+`COOKIE_SECRET`, and non-empty HTTPS `FRONTEND_ORIGINS`.
+
 ## Auth And CSRF
 
 The backend uses signed, httpOnly cookies:
