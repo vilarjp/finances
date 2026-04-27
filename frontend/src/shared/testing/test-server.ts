@@ -48,6 +48,17 @@ export const server = setupServer(
     HttpResponse.json({ message: "Unauthenticated" }, { status: 401 }),
   ),
   http.get("*/api/auth/csrf", () => HttpResponse.json({ csrfToken: "test-csrf-token" })),
+  http.post("*/api/auth/refresh", () =>
+    HttpResponse.json(
+      {
+        error: {
+          code: "REFRESH_TOKEN_MISSING",
+          message: "Authentication cookie is missing.",
+        },
+      },
+      { status: 401 },
+    ),
+  ),
   http.post("*/api/auth/logout", () => new HttpResponse(null, { status: 204 })),
   http.get("*/api/categories", () => HttpResponse.json({ categories: [] })),
   http.get("*/api/recurring-tags", () => HttpResponse.json({ recurringTags: [] })),

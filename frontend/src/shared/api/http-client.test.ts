@@ -8,6 +8,14 @@ afterEach(() => {
   clearApiSession({ broadcast: false });
 });
 
+it("returns allowed unauthenticated responses when refresh is unavailable", async () => {
+  const response = await apiGet<{ user: unknown }>("/auth/me", {
+    allowedStatuses: [401, 404],
+  });
+
+  expect(response).toEqual({ ok: false, status: 401 });
+});
+
 it("coordinates concurrent refresh attempts and retries unauthorized requests once", async () => {
   let protectedRequests = 0;
   let refreshRequests = 0;
