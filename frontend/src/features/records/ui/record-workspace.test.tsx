@@ -82,6 +82,11 @@ function mockSignedInRecordWorkspace(records: TestRecord[]) {
   let recordsRequestCount = 0;
   let createRequestCount = 0;
   let pasteRequestCount = 0;
+  let lastPastePayload: {
+    sourceSnapshot: Omit<RecordPayload, "effectiveDate">;
+    targetDate: string;
+    targetTime?: string;
+  } | null = null;
 
   server.use(
     http.get("*/api/auth/me", () =>
@@ -139,11 +144,8 @@ function mockSignedInRecordWorkspace(records: TestRecord[]) {
     http.post("*/api/records/paste", async ({ request }) => {
       pasteRequestCount += 1;
 
-      const payload = (await request.json()) as {
-        sourceSnapshot: Omit<RecordPayload, "effectiveDate" | "effectiveTime">;
-        targetDate: string;
-        targetTime?: string;
-      };
+      const payload = (await request.json()) as NonNullable<typeof lastPastePayload>;
+      lastPastePayload = payload;
       const record = buildRecord(`record-pasted-${pasteRequestCount}`, {
         ...payload.sourceSnapshot,
         effectiveDate: payload.targetDate,
@@ -187,6 +189,7 @@ function mockSignedInRecordWorkspace(records: TestRecord[]) {
 
   return {
     getCreateRequestCount: () => createRequestCount,
+    getLastPastePayload: () => lastPastePayload,
     getPasteRequestCount: () => pasteRequestCount,
     getRecordsRequestCount: () => recordsRequestCount,
   };
@@ -268,5 +271,12 @@ it("copies a record snapshot, pastes it onto a target day, and refreshes the lis
   expect(screen.getAllByText("Coffee")).toHaveLength(2);
 
   await waitFor(() => expect(requestCounts.getPasteRequestCount()).toBe(1));
+  expect(requestCounts.getLastPastePayload()).toMatchObject({
+    sourceSnapshot: {
+      effectiveTime: "09:00",
+    },
+    targetDate: "2026-04-27",
+  });
+  expect(requestCounts.getLastPastePayload()).not.toHaveProperty("targetTime");
   await waitFor(() => expect(requestCounts.getRecordsRequestCount()).toBeGreaterThan(1));
 });

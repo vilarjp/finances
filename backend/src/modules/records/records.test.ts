@@ -492,6 +492,76 @@ describe("record routes", () => {
     });
   });
 
+  it("treats id-less updated values as new even when their sort order collides", async () => {
+    const { app: appInstance, database } = await createRecordsApp();
+    const user = await signUp(appInstance, "record-value-collision@example.com");
+    const originalValueId = new ObjectId();
+    const originalValueCreatedAt = new Date("2026-04-24T12:00:00.000Z");
+    const record = await insertRecordFixture(database.db, {
+      userId: new ObjectId(user.userId),
+      type: "expense",
+      expenseKind: "daily",
+      description: "Record with values",
+      values: [
+        createRecordValueFixture({
+          _id: originalValueId,
+          createdAt: originalValueCreatedAt,
+          label: "Original value",
+          amountCents: 100_00,
+          sortOrder: 0,
+        }),
+      ],
+    });
+
+    const updateResponse = await appInstance.inject({
+      method: "PATCH",
+      url: `/api/records/${record._id.toHexString()}`,
+      headers: {
+        cookie: user.cookieHeader,
+        "x-csrf-token": user.csrfToken,
+      },
+      payload: {
+        values: [
+          {
+            id: originalValueId.toHexString(),
+            label: "Edited value",
+            amountCents: 125_00,
+            sortOrder: 0,
+          },
+          {
+            label: "New colliding value",
+            amountCents: 25_00,
+            sortOrder: 0,
+          },
+        ],
+      },
+    });
+
+    const values = updateResponse.json<{
+      record: {
+        values: Array<{
+          id: string;
+          createdAt: string;
+          label: string;
+        }>;
+      };
+    }>().record.values;
+
+    expect(updateResponse.statusCode).toBe(200);
+    expect(values).toHaveLength(2);
+    expect(values[0]).toMatchObject({
+      id: originalValueId.toHexString(),
+      createdAt: originalValueCreatedAt.toISOString(),
+      label: "Edited value",
+    });
+    expect(values[1]).toMatchObject({
+      label: "New colliding value",
+    });
+    expect(values[1]?.id).not.toBe(originalValueId.toHexString());
+    expect(values[1]?.createdAt).not.toBe(originalValueCreatedAt.toISOString());
+    expect(new Set(values.map((value) => value.id)).size).toBe(2);
+  });
+
   it("pastes a sanitized source snapshot onto a target date without changing copied data", async () => {
     const { app: appInstance, database } = await createRecordsApp();
     const firstUser = await signUp(appInstance, "paste-owner@example.com");
@@ -551,6 +621,22 @@ describe("record routes", () => {
         targetTime: "07:15",
       },
     });
+    const preserveTimePasteResponse = await appInstance.inject({
+      method: "POST",
+      url: "/api/records/paste",
+      headers: {
+        cookie: firstUser.cookieHeader,
+        "x-csrf-token": firstUser.csrfToken,
+      },
+      payload: {
+        sourceRecordId: sourceRecordId.toHexString(),
+        sourceSnapshot: {
+          ...sourceSnapshot,
+          effectiveTime: "13:45",
+        },
+        targetDate: "2026-05-04",
+      },
+    });
     const invalidPasteResponse = await appInstance.inject({
       method: "POST",
       url: "/api/records/paste",
@@ -600,6 +686,14 @@ describe("record routes", () => {
     expect(pasteResponse.json<{ record: { id: string } }>().record.id).not.toBe(
       sourceRecordId.toHexString(),
     );
+    expect(preserveTimePasteResponse.statusCode).toBe(201);
+    expect(preserveTimePasteResponse.json()).toMatchObject({
+      record: {
+        effectiveAt: "2026-05-04T16:45:00.000Z",
+        financeDate: "2026-05-04",
+        financeMonth: "2026-05",
+      },
+    });
     expect(invalidPasteResponse.statusCode).toBe(400);
   });
 });

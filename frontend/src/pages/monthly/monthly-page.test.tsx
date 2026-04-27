@@ -25,7 +25,7 @@ type RecordMutationPayload = {
 
 type PasteRecordPayload = {
   sourceRecordId?: string;
-  sourceSnapshot: Omit<RecordMutationPayload, "effectiveDate" | "effectiveTime">;
+  sourceSnapshot: Omit<RecordMutationPayload, "effectiveDate">;
   targetDate: string;
   targetTime?: string;
 };
@@ -270,4 +270,10 @@ it("edits monthly records and pastes a copied record onto the selected day", asy
 
   expect(await screen.findByText("Pasted Client consulting to 2024-02-29.")).toBeInTheDocument();
   await waitFor(() => expect(requests.getLastPastePayload()?.targetDate).toBe("2024-02-29"));
+  expect(requests.getLastPastePayload()).toMatchObject({
+    sourceSnapshot: {
+      effectiveTime: "09:00",
+    },
+  });
+  expect(requests.getLastPastePayload()).not.toHaveProperty("targetTime");
 });

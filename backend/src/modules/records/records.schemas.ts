@@ -109,6 +109,7 @@ export const recordSnapshotSchema = z
     type: recordTypeSchema,
     expenseKind: expenseKindSchema.nullable().optional(),
     description: recordDescriptionSchema,
+    effectiveTime: z.string().optional(),
     fontColor: recordColorSchema("fontColor"),
     backgroundColor: recordColorSchema("backgroundColor"),
     values: valuesInputSchema,

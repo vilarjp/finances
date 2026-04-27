@@ -60,6 +60,10 @@ export class ApiError extends Error {
 let csrfToken: string | null = null;
 let refreshPromise: Promise<boolean> | null = null;
 
+type FetchCsrfTokenOptions = {
+  skipRefresh?: boolean;
+};
+
 function createAuthChannel() {
   if (typeof globalThis.BroadcastChannel !== "function") {
     return null;
@@ -154,13 +158,29 @@ export function clearApiSession(options: { broadcast?: boolean } = {}) {
   clearCsrfToken(options.broadcast ?? true);
 }
 
-export async function fetchCsrfToken() {
-  const response = await fetch(`${apiBaseUrl}/auth/csrf`, {
+function requestCsrfToken() {
+  return fetch(`${apiBaseUrl}/auth/csrf`, {
     credentials: "include",
     headers: {
       Accept: "application/json",
     },
   });
+}
+
+export async function fetchCsrfToken(options: FetchCsrfTokenOptions = {}) {
+  let response = await requestCsrfToken();
+
+  if (response.status === 401 && !options.skipRefresh) {
+    const refreshed = await refreshSession();
+
+    if (refreshed && csrfToken !== null) {
+      return csrfToken;
+    }
+
+    if (refreshed) {
+      response = await requestCsrfToken();
+    }
+  }
 
   if (!response.ok) {
     throw await createApiError(response);
@@ -207,7 +227,7 @@ async function performSessionRefresh() {
   }
 
   try {
-    await fetchCsrfToken();
+    await fetchCsrfToken({ skipRefresh: true });
     return true;
   } catch {
     clearCsrfToken(true);

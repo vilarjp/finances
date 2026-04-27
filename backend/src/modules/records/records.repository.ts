@@ -64,17 +64,12 @@ function toUpdatedRecordValueDocuments(
   const existingValuesById = new Map(
     existingValues.map((value) => [value._id.toHexString(), value] as const),
   );
-  const existingValuesBySortOrder = new Map(
-    existingValues.map((value) => [value.sortOrder, value] as const),
-  );
 
   return values.map((value) =>
     toRecordValueDocument(
       value,
       now,
-      value.id
-        ? existingValuesById.get(value.id.toHexString())
-        : existingValuesBySortOrder.get(value.sortOrder),
+      value.id ? existingValuesById.get(value.id.toHexString()) : undefined,
     ),
   );
 }

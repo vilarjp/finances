@@ -15,7 +15,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 
 import { useAuth } from "@app/providers/auth-context";
-import { currentUserQueryKey } from "@entities/user";
+import { setCurrentUserQueryData } from "@entities/user";
 import { logout } from "@features/auth";
 import { RecordClipboardProvider } from "@features/records";
 import { ThemeModeToggle } from "@features/theme-toggle";
@@ -150,7 +150,7 @@ export function AuthenticatedLayout() {
   const logoutMutation = useMutation({
     mutationFn: logout,
     onSettled: () => {
-      queryClient.setQueryData(currentUserQueryKey, null);
+      setCurrentUserQueryData(queryClient, null);
       void navigate("/login", { replace: true });
     },
   });

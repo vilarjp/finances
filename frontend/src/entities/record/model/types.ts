@@ -40,6 +40,7 @@ export type RecordSnapshot = {
   type: RecordType;
   expenseKind?: ExpenseKind | null;
   description: string;
+  effectiveTime?: string;
   fontColor: string;
   backgroundColor: string;
   values: RecordValueSnapshot[];

@@ -5,7 +5,7 @@ import type { FormEvent } from "react";
 import { useForm } from "react-hook-form";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
-import { currentUserQueryKey } from "@entities/user";
+import { setCurrentUserQueryData } from "@entities/user";
 import { getAuthRedirectPath, login, loginFormSchema } from "@features/auth";
 import type { LoginFormValues } from "@features/auth";
 import { getApiErrorMessage } from "@shared/api/errors";
@@ -30,7 +30,7 @@ export function LoginPage() {
   const loginMutation = useMutation({
     mutationFn: login,
     onSuccess: (user) => {
-      queryClient.setQueryData(currentUserQueryKey, user);
+      setCurrentUserQueryData(queryClient, user);
       void navigate(getAuthRedirectPath(location.state), { replace: true });
     },
   });

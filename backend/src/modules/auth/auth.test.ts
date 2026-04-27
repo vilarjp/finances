@@ -380,6 +380,73 @@ describe("auth routes", () => {
     });
   });
 
+  it("rejects malformed, cross-user, and stale CSRF tokens", async () => {
+    const { app: appInstance } = await createAuthApp();
+
+    const firstSignupResponse = await signUp(appInstance, {
+      email: "csrf-first@example.com",
+    });
+    const secondSignupResponse = await signUp(appInstance, {
+      email: "csrf-second@example.com",
+    });
+    const firstCookieHeader = cookieHeaderFromResponse(firstSignupResponse);
+    const secondCookieHeader = cookieHeaderFromResponse(secondSignupResponse);
+    const firstCsrfToken = await getCsrfToken(appInstance, firstCookieHeader);
+    const secondCsrfToken = await getCsrfToken(appInstance, secondCookieHeader);
+    const malformedResponse = await appInstance.inject({
+      method: "POST",
+      url: "/api/auth/logout",
+      headers: {
+        cookie: firstCookieHeader,
+        "x-csrf-token": "not-a-signed-csrf-token",
+      },
+    });
+    const crossUserResponse = await appInstance.inject({
+      method: "POST",
+      url: "/api/auth/logout",
+      headers: {
+        cookie: secondCookieHeader,
+        "x-csrf-token": firstCsrfToken,
+      },
+    });
+    const refreshResponse = await appInstance.inject({
+      method: "POST",
+      url: "/api/auth/refresh",
+      headers: {
+        cookie: secondCookieHeader,
+      },
+    });
+    const refreshedSecondCookieHeader = mergeCookieHeader(secondCookieHeader, refreshResponse);
+    const staleResponse = await appInstance.inject({
+      method: "POST",
+      url: "/api/auth/logout",
+      headers: {
+        cookie: refreshedSecondCookieHeader,
+        "x-csrf-token": secondCsrfToken,
+      },
+    });
+
+    expect(malformedResponse.statusCode).toBe(403);
+    expect(crossUserResponse.statusCode).toBe(403);
+    expect(refreshResponse.statusCode).toBe(200);
+    expect(staleResponse.statusCode).toBe(403);
+    expect(malformedResponse.json()).toMatchObject({
+      error: {
+        code: "CSRF_TOKEN_INVALID",
+      },
+    });
+    expect(crossUserResponse.json()).toMatchObject({
+      error: {
+        code: "CSRF_TOKEN_INVALID",
+      },
+    });
+    expect(staleResponse.json()).toMatchObject({
+      error: {
+        code: "CSRF_TOKEN_INVALID",
+      },
+    });
+  });
+
   it("rejects missing, expired, and revoked refresh tokens", async () => {
     const { app: appInstance, database } = await createAuthApp();
 

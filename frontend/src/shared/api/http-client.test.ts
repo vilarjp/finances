@@ -63,3 +63,44 @@ it("sends the CSRF token on authenticated mutating requests", async () => {
   expect(response).toEqual({ data: { ok: true }, ok: true });
   expect(csrfHeader).toBe("fresh-csrf-token");
 });
+
+it("refreshes before fetching CSRF for a mutating request when the access session expired", async () => {
+  let csrfRequests = 0;
+  let refreshRequests = 0;
+  let csrfHeader: string | null = null;
+
+  server.use(
+    http.get("*/api/auth/csrf", () => {
+      csrfRequests += 1;
+
+      if (csrfRequests === 1) {
+        return HttpResponse.json({ message: "Unauthorized" }, { status: 401 });
+      }
+
+      return HttpResponse.json({ csrfToken: "csrf-after-refresh" });
+    }),
+    http.post("*/api/auth/refresh", () => {
+      refreshRequests += 1;
+
+      return HttpResponse.json({
+        user: {
+          id: "user-1",
+          name: "Ada Lovelace",
+          email: "ada@example.com",
+        },
+      });
+    }),
+    http.post("*/api/protected", ({ request }) => {
+      csrfHeader = request.headers.get("x-csrf-token");
+
+      return HttpResponse.json({ ok: true });
+    }),
+  );
+
+  const response = await apiPost<{ ok: boolean }>("/protected", { value: "saved" });
+
+  expect(response).toEqual({ data: { ok: true }, ok: true });
+  expect(refreshRequests).toBe(1);
+  expect(csrfRequests).toBe(2);
+  expect(csrfHeader).toBe("csrf-after-refresh");
+});
