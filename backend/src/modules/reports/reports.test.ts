@@ -293,7 +293,7 @@ describe("report routes", () => {
         dailyExpenseTotalCents: 50_00,
         balanceCents: 1_700_00,
       },
-      threeDayRows: [
+      fiveDayRows: [
         {
           date: "2026-04-25",
           balanceCents: 1_700_00,
@@ -304,6 +304,14 @@ describe("report routes", () => {
         },
         {
           date: "2026-04-27",
+          balanceCents: 0,
+        },
+        {
+          date: "2026-04-28",
+          balanceCents: 0,
+        },
+        {
+          date: "2026-04-29",
           balanceCents: 0,
         },
       ],

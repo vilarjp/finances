@@ -1,9 +1,13 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
+import { MemoryRouter } from "react-router-dom";
 
-import { App } from "@app/app";
 import { server } from "@shared/testing/test-server";
+
+import { RecordClipboardProvider } from "../model/record-clipboard";
+import { RecordWorkspace } from "./record-workspace";
 
 type TestRecordValue = {
   id: string;
@@ -195,6 +199,26 @@ function mockSignedInRecordWorkspace(records: TestRecord[]) {
   };
 }
 
+function renderRecordWorkspace() {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  });
+
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>
+        <RecordClipboardProvider userId="user-1">
+          <RecordWorkspace />
+        </RecordClipboardProvider>
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+}
+
 beforeEach(() => {
   window.history.pushState({}, "", "/");
   window.sessionStorage.clear();
@@ -204,7 +228,7 @@ it("validates the record editor, manages values, and refreshes records after cre
   const user = userEvent.setup();
   const requestCounts = mockSignedInRecordWorkspace([]);
 
-  render(<App />);
+  renderRecordWorkspace();
 
   expect(await screen.findByRole("heading", { name: "Records" })).toBeInTheDocument();
 
@@ -215,12 +239,14 @@ it("validates the record editor, manages values, and refreshes records after cre
 
   await user.type(screen.getByLabelText("Record description"), "April income");
   await user.type(screen.getByLabelText("Value 1 label"), "Salary");
-  await user.type(screen.getByLabelText("Value 1 amount cents"), "1");
+  await user.type(screen.getByLabelText("Value 1 amount cents"), "300000");
   await user.selectOptions(screen.getByLabelText("Value 1 category"), "category-groceries");
   await user.selectOptions(screen.getByLabelText("Value 1 recurring tag"), "tag-salary");
-  await user.click(screen.getByRole("button", { name: "Apply stored amount" }));
 
-  expect(screen.getByLabelText("Value 1 amount cents")).toHaveValue(300000);
+  expect(
+    screen.queryByRole("button", { name: "Create recurring tag from value" }),
+  ).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Save recurring tag" })).not.toBeInTheDocument();
 
   await user.click(screen.getByRole("button", { name: "Add value" }));
 
@@ -258,7 +284,7 @@ it("copies a record snapshot, pastes it onto a target day, and refreshes the lis
   });
   const requestCounts = mockSignedInRecordWorkspace([sourceRecord]);
 
-  render(<App />);
+  renderRecordWorkspace();
 
   expect(await screen.findByText("Coffee")).toBeInTheDocument();
 

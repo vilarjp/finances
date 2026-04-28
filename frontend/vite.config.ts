@@ -5,6 +5,26 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  build: {
+    rolldownOptions: {
+      output: {
+        codeSplitting: {
+          groups: [
+            {
+              name: "charts",
+              test: /node_modules[\\/](?:recharts|d3-|decimal\.js-light|victory-vendor)/,
+              priority: 2,
+            },
+            {
+              name: "vendor",
+              test: /node_modules/,
+              priority: 1,
+            },
+          ],
+        },
+      },
+    },
+  },
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),

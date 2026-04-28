@@ -3,7 +3,6 @@ import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 
 import { App } from "@app/app";
-import type { FinanceRecord } from "@entities/record";
 import { clearApiSession } from "@shared/api/http-client";
 import { server } from "@shared/testing/test-server";
 
@@ -67,31 +66,6 @@ function mockSignedInUser() {
   );
 }
 
-const userAFinanceRecord: FinanceRecord = {
-  id: "record-user-a",
-  effectiveAt: "2026-04-26T12:00:00.000Z",
-  financeDate: "2026-04-26",
-  financeMonth: "2026-04",
-  type: "expense",
-  expenseKind: "daily",
-  description: "User A groceries",
-  fontColor: "#111827",
-  backgroundColor: "#DBEAFE",
-  values: [
-    {
-      id: "record-user-a-value",
-      label: "Groceries",
-      amountCents: 4500,
-      sortOrder: 0,
-      createdAt: "2026-04-26T12:00:00.000Z",
-      updatedAt: "2026-04-26T12:00:00.000Z",
-    },
-  ],
-  totalAmountCents: 4500,
-  createdAt: "2026-04-26T12:00:00.000Z",
-  updatedAt: "2026-04-26T12:00:00.000Z",
-};
-
 it("renders authenticated sidebar navigation and supports collapse plus route changes", async () => {
   const user = userEvent.setup();
 
@@ -108,6 +82,16 @@ it("renders authenticated sidebar navigation and supports collapse plus route ch
     "page",
   );
   expect(within(sidebar).getByRole("button", { name: "New record" })).toBeInTheDocument();
+  expect(within(sidebar).getByRole("link", { name: "Categories & tags" })).toHaveAttribute(
+    "href",
+    "/categories-and-tags",
+  );
+
+  await user.click(within(sidebar).getByRole("button", { name: "New record" }));
+
+  expect(await screen.findByRole("dialog", { name: "Create record" })).toBeInTheDocument();
+
+  await user.click(screen.getByRole("button", { name: "Close record editor" }));
 
   await user.click(within(sidebar).getByRole("button", { name: "Collapse sidebar" }));
 
@@ -124,6 +108,60 @@ it("renders authenticated sidebar navigation and supports collapse plus route ch
     "aria-current",
     "page",
   );
+});
+
+it("opens the dedicated categories and recurring tags route from the sidebar", async () => {
+  const user = userEvent.setup();
+
+  mockSignedInUser();
+  server.use(
+    http.get("*/api/categories", () =>
+      HttpResponse.json({
+        categories: [
+          {
+            id: "category-groceries",
+            name: "Groceries",
+            fontColor: "#111827",
+            backgroundColor: "#FEF3C7",
+            createdAt: "2026-04-26T12:00:00.000Z",
+            updatedAt: "2026-04-26T12:00:00.000Z",
+          },
+        ],
+      }),
+    ),
+    http.get("*/api/recurring-tags", () =>
+      HttpResponse.json({
+        recurringTags: [
+          {
+            id: "tag-rent",
+            name: "Rent",
+            amountCents: 120000,
+            lastAmountUpdatedAt: "2026-04-26T12:00:00.000Z",
+            createdAt: "2026-04-26T12:00:00.000Z",
+            updatedAt: "2026-04-26T12:00:00.000Z",
+          },
+        ],
+      }),
+    ),
+  );
+  render(<App />);
+
+  const sidebar = await screen.findByRole("complementary", {
+    name: "Authenticated navigation",
+  });
+
+  await user.click(within(sidebar).getByRole("link", { name: "Categories & tags" }));
+
+  expect(
+    await screen.findByRole("heading", { name: "Categories & Recurring tags" }),
+  ).toBeInTheDocument();
+  expect(window.location.pathname).toBe("/categories-and-tags");
+  expect(within(sidebar).getByRole("link", { name: "Categories & tags" })).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
+  expect(screen.getByText("1 category")).toBeInTheDocument();
+  expect(screen.getByText("1 recurring tag")).toBeInTheDocument();
 });
 
 it("logs out from the authenticated sidebar and returns to login", async () => {
@@ -151,7 +189,7 @@ it("logs out from the authenticated sidebar and returns to login", async () => {
   await waitFor(() => expect(logoutRequestCount).toBe(1));
 });
 
-it("does not render cached finance data after logging in as a different user", async () => {
+it("does not render cached authenticated shell data after logging in as a different user", async () => {
   const user = userEvent.setup();
   const userA = {
     id: "user-a",
@@ -164,10 +202,6 @@ it("does not render cached finance data after logging in as a different user", a
     email: "grace@example.com",
   };
   let currentUser: typeof userA | typeof userB | null = userA;
-  let resolveUserBRecords: (() => void) | undefined;
-  const userBRecordsReady = new Promise<void>((resolve) => {
-    resolveUserBRecords = resolve;
-  });
 
   server.use(
     http.get("*/api/auth/me", () => {
@@ -177,15 +211,6 @@ it("does not render cached finance data after logging in as a different user", a
 
       return HttpResponse.json({
         user: currentUser,
-      });
-    }),
-    http.get("*/api/records", async () => {
-      if (currentUser?.id === "user-b") {
-        await userBRecordsReady;
-      }
-
-      return HttpResponse.json({
-        records: currentUser?.id === "user-a" ? [userAFinanceRecord] : [],
       });
     }),
     http.post("*/api/auth/logout", () => {
@@ -204,7 +229,7 @@ it("does not render cached finance data after logging in as a different user", a
 
   render(<App />);
 
-  expect(await screen.findByText("User A groceries")).toBeInTheDocument();
+  expect(await screen.findByText("Ada Lovelace")).toBeInTheDocument();
 
   const sidebar = screen.getByRole("complementary", {
     name: "Authenticated navigation",
@@ -219,11 +244,7 @@ it("does not render cached finance data after logging in as a different user", a
   await user.click(screen.getByRole("button", { name: "Login" }));
 
   expect(await screen.findByText("Grace Hopper")).toBeInTheDocument();
-  expect(screen.queryByText("User A groceries")).not.toBeInTheDocument();
-
-  resolveUserBRecords?.();
-
-  expect(await screen.findByText("No records for this month yet.")).toBeInTheDocument();
+  expect(screen.queryByText("Ada Lovelace")).not.toBeInTheDocument();
 });
 
 it("clears protected UI when the API session is cleared", async () => {

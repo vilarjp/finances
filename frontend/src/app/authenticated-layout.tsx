@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   CalendarDays,
+  FolderKanban,
   Home,
   LogOut,
   Menu,
@@ -11,13 +12,13 @@ import {
   X,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 
 import { useAuth } from "@app/providers/auth-context";
 import { setCurrentUserQueryData } from "@entities/user";
 import { logout } from "@features/auth";
-import { RecordClipboardProvider } from "@features/records";
+import { RecordClipboardProvider, RecordCreateController } from "@features/records";
 import { ThemeModeToggle } from "@features/theme-toggle";
 import { cn } from "@shared/lib/utils";
 import { Button } from "@shared/ui/button";
@@ -39,6 +40,11 @@ const navigationItems: NavigationItem[] = [
     label: "Monthly",
     to: "/monthly",
   },
+  {
+    icon: FolderKanban,
+    label: "Categories & tags",
+    to: "/categories-and-tags",
+  },
 ];
 
 function isNavigationItemActive(pathname: string, to: string) {
@@ -47,6 +53,68 @@ function isNavigationItemActive(pathname: string, to: string) {
   }
 
   return pathname.startsWith(to);
+}
+
+function getNavigationLinkClassName({
+  collapsed,
+  isActive,
+}: {
+  collapsed: boolean;
+  isActive: boolean;
+}) {
+  if (collapsed) {
+    return cn(
+      "mx-auto size-10 max-w-10 justify-center gap-0 bg-transparent p-0 shadow-none hover:bg-sidebar-accent/35",
+      isActive && "text-sidebar-primary hover:text-sidebar-primary",
+    );
+  }
+
+  if (isActive) {
+    return "border-sidebar-border bg-sidebar-accent text-sidebar-accent-foreground shadow-sm";
+  }
+
+  return "text-sidebar-foreground hover:border-sidebar-border hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground hover:shadow-sm";
+}
+
+function getNavigationIconClassName({
+  collapsed,
+  isActive,
+}: {
+  collapsed: boolean;
+  isActive: boolean;
+}) {
+  if (collapsed) {
+    return "bg-transparent text-current";
+  }
+
+  if (isActive) {
+    return "bg-sidebar-primary/15 text-sidebar-primary";
+  }
+
+  return "text-sidebar-foreground/80 group-hover:bg-sidebar-primary/10 group-hover:text-sidebar-primary";
+}
+
+function SidebarText({
+  children,
+  className,
+  collapsed = false,
+}: {
+  children: ReactNode;
+  className?: string;
+  collapsed?: boolean;
+}) {
+  return (
+    <span
+      aria-hidden={collapsed ? true : undefined}
+      className={cn(
+        "min-w-0 max-w-44 overflow-hidden truncate transition-[max-width,opacity,transform] duration-200 ease-out motion-reduce:transition-none",
+        collapsed ? "max-w-0 -translate-x-1 opacity-0" : "translate-x-0 opacity-100",
+        className,
+      )}
+    >
+      {children}
+    </span>
+  );
 }
 
 function UserSummary({
@@ -61,11 +129,20 @@ function UserSummary({
   return (
     <div
       className={cn(
-        "flex min-w-0 items-center gap-3 rounded-md border border-sidebar-border bg-background/80 p-3",
-        collapsed && "justify-center px-2",
+        "flex min-w-0 items-center rounded-md transition-[background-color,border-color,padding] duration-200 ease-out motion-reduce:transition-none",
+        collapsed
+          ? "mx-auto w-10 max-w-10 justify-center border border-transparent bg-transparent p-0"
+          : "gap-3 border border-sidebar-border bg-background/80 p-3",
       )}
     >
-      <div className="grid size-10 shrink-0 place-items-center rounded-md bg-sidebar-primary text-sm font-semibold text-sidebar-primary-foreground">
+      <div
+        className={cn(
+          "grid size-10 max-w-10 shrink-0 place-items-center rounded-md text-sm font-semibold transition-[background-color,color] duration-200 ease-out motion-reduce:transition-none",
+          collapsed
+            ? "bg-transparent text-sidebar-primary"
+            : "bg-sidebar-primary text-sidebar-primary-foreground",
+        )}
+      >
         {name.slice(0, 1).toUpperCase()}
       </div>
       <div className={cn("min-w-0", collapsed && "sr-only")}>
@@ -86,7 +163,7 @@ function NavigationLinks({
   const location = useLocation();
 
   return (
-    <nav aria-label="App pages" className="grid gap-1">
+    <nav aria-label="App pages" className="grid gap-1.5">
       {navigationItems.map((item) => {
         const Icon = item.icon;
         const isActive = isNavigationItemActive(location.pathname, item.to);
@@ -96,18 +173,22 @@ function NavigationLinks({
             aria-current={isActive ? "page" : undefined}
             aria-label={collapsed ? item.label : undefined}
             className={cn(
-              "flex min-h-10 items-center gap-3 rounded-md px-3 py-2 text-sm font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-sidebar-ring",
-              isActive
-                ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                : "text-sidebar-foreground hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground",
-              collapsed && "justify-center px-2",
+              "group flex min-h-11 items-center gap-3 rounded-md border border-transparent px-2 py-2 text-sm font-medium outline-none transition-[background-color,border-color,color,box-shadow] duration-200 ease-out focus-visible:ring-2 focus-visible:ring-sidebar-ring motion-reduce:transition-none",
+              getNavigationLinkClassName({ collapsed, isActive }),
             )}
             key={item.to}
             onClick={onNavigate}
             to={item.to}
           >
-            <Icon aria-hidden={true} className="size-4 shrink-0" />
-            <span className={cn("truncate", collapsed && "sr-only")}>{item.label}</span>
+            <span
+              className={cn(
+                "grid size-7 shrink-0 place-items-center rounded-md transition-[background-color,color] duration-200 ease-out motion-reduce:transition-none",
+                getNavigationIconClassName({ collapsed, isActive }),
+              )}
+            >
+              <Icon aria-hidden={true} className="size-4 shrink-0" />
+            </span>
+            <SidebarText collapsed={collapsed}>{item.label}</SidebarText>
           </Link>
         );
       })}
@@ -127,12 +208,20 @@ function SidebarActionButton({
   return (
     <Button
       aria-label={collapsed ? label : undefined}
-      className={cn("w-full", collapsed ? "px-0" : "justify-start")}
+      className={cn(
+        "group cursor-pointer transition-[background-color,border-color,color,box-shadow] duration-200 ease-out motion-reduce:transition-none",
+        collapsed
+          ? "mx-auto size-10 max-w-10 gap-0 border-transparent bg-transparent p-0 text-sidebar-primary shadow-none hover:bg-sidebar-accent/35 hover:text-sidebar-primary hover:shadow-none"
+          : "w-full justify-start border border-sidebar-primary/25 bg-sidebar-primary text-sidebar-primary-foreground shadow-sm hover:bg-sidebar-primary/90",
+      )}
       onClick={onClick}
       type="button"
     >
-      <Plus aria-hidden="true" />
-      <span className={cn(collapsed && "sr-only")}>{label}</span>
+      <Plus
+        aria-hidden="true"
+        className="transition-colors duration-200 ease-out motion-reduce:transition-none"
+      />
+      <SidebarText collapsed={collapsed}>{label}</SidebarText>
     </Button>
   );
 }
@@ -195,29 +284,39 @@ export function AuthenticatedLayout() {
   return (
     <div
       className={cn(
-        "min-h-screen bg-background text-foreground lg:grid",
-        isSidebarCollapsed
-          ? "lg:grid-cols-[5rem_minmax(0,1fr)]"
-          : "lg:grid-cols-[17rem_minmax(0,1fr)]",
+        "min-h-screen bg-background text-foreground lg:h-screen lg:overflow-hidden",
+        isSidebarCollapsed ? "lg:[--sidebar-width:5rem]" : "lg:[--sidebar-width:17rem]",
       )}
     >
       <aside
         aria-label="Authenticated navigation"
-        className="hidden min-h-screen border-r border-sidebar-border bg-sidebar text-sidebar-foreground lg:sticky lg:top-0 lg:flex lg:flex-col"
+        className="hidden h-screen border-r border-sidebar-border bg-sidebar text-sidebar-foreground motion-reduce:transition-none lg:fixed lg:inset-y-0 lg:left-0 lg:z-30 lg:flex lg:w-[var(--sidebar-width)] lg:flex-col lg:overflow-hidden lg:transition-[width] lg:duration-300 lg:ease-[cubic-bezier(0.22,1,0.36,1)]"
       >
-        <div className="flex min-h-16 items-center justify-between gap-2 border-b border-sidebar-border px-3">
+        <div
+          className={cn(
+            "flex min-h-16 items-center border-b border-sidebar-border transition-[min-height,padding] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none",
+            isSidebarCollapsed
+              ? "min-h-28 flex-col justify-center gap-3 px-2 py-3"
+              : "justify-between gap-2 px-3",
+          )}
+        >
           <Link
-            className="flex min-w-0 items-center gap-2 rounded-md px-2 py-1.5 font-semibold outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+            aria-label={isSidebarCollapsed ? "Personal Finance home" : undefined}
+            className={cn(
+              "flex min-w-0 items-center rounded-md font-semibold outline-none transition-[background-color,color] duration-200 ease-out focus-visible:ring-2 focus-visible:ring-sidebar-ring motion-reduce:transition-none",
+              isSidebarCollapsed
+                ? "size-10 max-w-10 justify-center bg-transparent p-0 text-sidebar-primary hover:bg-transparent"
+                : "gap-2 px-2 py-1.5 hover:bg-sidebar-accent/60",
+            )}
             to="/"
           >
             <WalletCards aria-hidden="true" className="size-5 shrink-0 text-sidebar-primary" />
-            <span className={cn("truncate", isSidebarCollapsed && "sr-only")}>
-              Personal Finance
-            </span>
+            <SidebarText collapsed={isSidebarCollapsed}>Personal Finance</SidebarText>
           </Link>
           <Button
             aria-expanded={!isSidebarCollapsed}
             aria-label={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            className="shrink-0 cursor-pointer transition-[background-color,color] duration-200 ease-out motion-reduce:transition-none"
             onClick={() => setSidebarCollapsed((value) => !value)}
             size="icon"
             title={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
@@ -232,7 +331,7 @@ export function AuthenticatedLayout() {
           </Button>
         </div>
 
-        <div className="flex flex-1 flex-col gap-4 px-3 py-4">
+        <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-3 py-4">
           <UserSummary collapsed={isSidebarCollapsed} email={user?.email} name={userName} />
           <SidebarActionButton
             collapsed={isSidebarCollapsed}
@@ -242,13 +341,18 @@ export function AuthenticatedLayout() {
           <NavigationLinks collapsed={isSidebarCollapsed} />
         </div>
 
-        <div className="grid gap-3 border-t border-sidebar-border px-3 py-4">
+        <div className="grid shrink-0 gap-3 border-t border-sidebar-border px-3 py-4">
           <div className={cn(isSidebarCollapsed && "flex justify-center")}>
             <ThemeModeToggle className={cn(isSidebarCollapsed && "grid w-fit grid-cols-1")} />
           </div>
           <Button
             aria-label={isSidebarCollapsed ? "Logout" : undefined}
-            className={cn("w-full", isSidebarCollapsed ? "px-0" : "justify-start")}
+            className={cn(
+              "transition-[background-color,color] duration-200 ease-out motion-reduce:transition-none",
+              isSidebarCollapsed
+                ? "mx-auto size-10 max-w-10 bg-transparent p-0 text-sidebar-foreground hover:bg-sidebar-accent/35"
+                : "w-full justify-start",
+            )}
             disabled={logoutMutation.isPending}
             onClick={() => logoutMutation.mutate()}
             type="button"
@@ -260,7 +364,7 @@ export function AuthenticatedLayout() {
         </div>
       </aside>
 
-      <div className="min-w-0">
+      <div className="min-w-0 motion-reduce:transition-none lg:ml-[var(--sidebar-width)] lg:h-screen lg:overflow-y-auto lg:transition-[margin-left] lg:duration-300 lg:ease-[cubic-bezier(0.22,1,0.36,1)]">
         <header className="border-border bg-background/95 supports-[backdrop-filter]:bg-background/70 sticky top-0 z-20 flex min-h-16 items-center justify-between gap-3 border-b px-4 backdrop-blur lg:hidden">
           <Button
             aria-label="Open navigation menu"
@@ -281,6 +385,7 @@ export function AuthenticatedLayout() {
 
         {user ? (
           <RecordClipboardProvider key={user.id} userId={user.id}>
+            <RecordCreateController />
             <Outlet />
           </RecordClipboardProvider>
         ) : null}

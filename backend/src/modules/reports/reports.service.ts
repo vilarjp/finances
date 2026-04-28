@@ -396,8 +396,8 @@ export class ReportsService {
     const previousMonth = getPreviousFinanceMonth(currentMonth);
     const currentMonthBoundaries = getFinanceMonthBoundaries(currentMonth);
     const previousMonthBoundaries = getFinanceMonthBoundaries(previousMonth);
-    const threeDayEndDate = addFinanceDays(date, 2);
-    const [currentMonthRecords, previousMonthRecords, threeDayRecords] = await Promise.all([
+    const fiveDayEndDate = addFinanceDays(date, 4);
+    const [currentMonthRecords, previousMonthRecords, fiveDayRecords] = await Promise.all([
       this.repository.listRecordsByFinanceDateRange({
         userId,
         from: currentMonthBoundaries.startDate,
@@ -411,12 +411,12 @@ export class ReportsService {
       this.repository.listRecordsByFinanceDateRange({
         userId,
         from: date,
-        to: threeDayEndDate,
+        to: fiveDayEndDate,
       }),
     ]);
     const maps = await this.loadLookupMaps(
       userId,
-      uniqueRecords([...currentMonthRecords, ...previousMonthRecords, ...threeDayRecords]),
+      uniqueRecords([...currentMonthRecords, ...previousMonthRecords, ...fiveDayRecords]),
     );
     const currentMonthRows = createRowsForDates(
       listFinanceDates(currentMonthBoundaries.startDate, currentMonthBoundaries.endDate),
@@ -428,12 +428,12 @@ export class ReportsService {
       previousMonthRecords,
       maps,
     );
-    const threeDayRows = createRowsForDates(
-      listFinanceDates(date, threeDayEndDate),
-      threeDayRecords,
+    const fiveDayRows = createRowsForDates(
+      listFinanceDates(date, fiveDayEndDate),
+      fiveDayRecords,
       maps,
     );
-    const currentDayRow = threeDayRows.find((row) => row.date === date);
+    const currentDayRow = fiveDayRows.find((row) => row.date === date);
 
     if (!currentDayRow) {
       throw new Error("Expected home report to include the requested date row.");
@@ -446,7 +446,7 @@ export class ReportsService {
       currentMonth,
       previousMonth,
       currentDayRow,
-      threeDayRows,
+      fiveDayRows,
       currentMonthIncomeByCategory: categoryBreakdowns.incomeByCategory,
       currentMonthExpenseByCategory: categoryBreakdowns.expenseByCategory,
       dailyBalanceSeries: {

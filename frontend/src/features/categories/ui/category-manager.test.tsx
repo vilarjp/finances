@@ -1,9 +1,11 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 
-import { App } from "@app/app";
 import { server } from "@shared/testing/test-server";
+
+import { CategoryManager } from "./category-manager";
 
 type TestCategory = {
   id: string;
@@ -14,9 +16,21 @@ type TestCategory = {
   updatedAt: string;
 };
 
-beforeEach(() => {
-  window.history.pushState({}, "", "/");
-});
+function renderCategoryManager() {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: false,
+      },
+    },
+  });
+
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <CategoryManager />
+    </QueryClientProvider>,
+  );
+}
 
 it("creates, selects, and edits categories from the reusable category workspace", async () => {
   const user = userEvent.setup();
@@ -32,15 +46,6 @@ it("creates, selects, and edits categories from the reusable category workspace"
   ];
 
   server.use(
-    http.get("*/api/auth/me", () =>
-      HttpResponse.json({
-        user: {
-          id: "user-1",
-          name: "Ada Lovelace",
-          email: "ada@example.com",
-        },
-      }),
-    ),
     http.get("*/api/categories", () => HttpResponse.json({ categories })),
     http.post("*/api/categories", async ({ request }) => {
       const body = (await request.json()) as Pick<
@@ -78,9 +83,8 @@ it("creates, selects, and edits categories from the reusable category workspace"
     }),
   );
 
-  render(<App />);
+  renderCategoryManager();
 
-  expect(await screen.findByRole("heading", { name: "Personal Finance" })).toBeInTheDocument();
   expect(await screen.findByRole("option", { name: "Groceries" })).toBeInTheDocument();
 
   await user.selectOptions(screen.getByLabelText("Category"), "category-groceries");

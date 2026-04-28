@@ -13,11 +13,12 @@ import { getApiErrorMessage } from "@shared/api/errors";
 import { formatFinanceDate, formatFinanceMonth, getFinanceMonthDateRange } from "@shared/lib/date";
 import { Button } from "@shared/ui/button";
 import { Input } from "@shared/ui/input";
+import { ModalOverlay } from "@shared/ui/modal";
 
 import { createRecord, deleteRecord, pasteRecord, updateRecord } from "../api/record-api";
 import type { RecordMutationPayload } from "../model/forms";
 import { useRecordClipboard } from "../model/record-clipboard-context";
-import { RecordEditor, type RecurringValueControlsRenderProps } from "./record-editor";
+import { RecordEditor } from "./record-editor";
 
 type EditorState =
   | {
@@ -33,7 +34,7 @@ type CreateRecordLocationState = {
 };
 
 type RecordWorkspaceProps = {
-  renderRecurringValueControls?: (props: RecurringValueControlsRenderProps) => ReactNode;
+  actions?: ReactNode;
 };
 
 function getCurrentMonthRange() {
@@ -62,7 +63,7 @@ function getCreateRecordRequestId(state: unknown) {
   return typeof createRecordRequestId === "number" ? createRecordRequestId : null;
 }
 
-export function RecordWorkspace({ renderRecurringValueControls }: RecordWorkspaceProps) {
+export function RecordWorkspace({ actions }: RecordWorkspaceProps) {
   const queryClient = useQueryClient();
   const location = useLocation();
   const navigate = useNavigate();
@@ -194,10 +195,13 @@ export function RecordWorkspace({ renderRecurringValueControls }: RecordWorkspac
             Records
           </h2>
         </div>
-        <Button onClick={openCreateEditor} type="button">
-          <Plus aria-hidden="true" />
-          Create record
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          {actions}
+          <Button onClick={openCreateEditor} type="button">
+            <Plus aria-hidden="true" />
+            Create record
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-3 rounded-lg border bg-card p-4 text-card-foreground shadow-sm">
@@ -243,15 +247,18 @@ export function RecordWorkspace({ renderRecurringValueControls }: RecordWorkspac
       </div>
 
       {editorState ? (
-        <RecordEditor
-          defaultDate={initialRange.today}
-          isSubmitting={isEditorSubmitting}
-          onCancel={() => setEditorState(null)}
-          onSubmit={handleEditorSubmit}
-          record={editorState.mode === "edit" ? editorState.record : undefined}
-          serverError={editorError}
-          {...(renderRecurringValueControls ? { renderRecurringValueControls } : {})}
-        />
+        <ModalOverlay onClose={() => setEditorState(null)}>
+          <RecordEditor
+            className="w-full"
+            defaultDate={initialRange.today}
+            isModal
+            isSubmitting={isEditorSubmitting}
+            onCancel={() => setEditorState(null)}
+            onSubmit={handleEditorSubmit}
+            record={editorState.mode === "edit" ? editorState.record : undefined}
+            serverError={editorError}
+          />
+        </ModalOverlay>
       ) : null}
 
       {recordsQuery.isError ? (

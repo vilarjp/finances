@@ -171,8 +171,8 @@ function CompactRecordSection({
 
 function DesktopTable({ dayActions, emptyMessage, recordActions, rows, title }: FinanceTableProps) {
   return (
-    <div className="hidden overflow-x-auto rounded-lg border bg-card text-card-foreground shadow-sm md:block">
-      <table className="min-w-[980px] table-fixed text-left text-sm" aria-label={title}>
+    <div className="hidden w-full overflow-x-auto rounded-lg border bg-card text-card-foreground shadow-sm md:block">
+      <table className="w-full min-w-[980px] table-fixed text-left text-sm" aria-label={title}>
         <caption className="sr-only">{title}</caption>
         <colgroup>
           <col className="w-[120px]" />
@@ -265,18 +265,18 @@ function CompactRows({
 }: Pick<FinanceTableProps, "dayActions" | "emptyMessage" | "recordActions" | "rows">) {
   if (rows.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed bg-card p-5 text-sm text-muted-foreground">
+      <div className="w-full rounded-lg border border-dashed bg-card p-5 text-sm text-muted-foreground">
         {emptyMessage}
       </div>
     );
   }
 
   return (
-    <div className="grid gap-3 md:hidden">
+    <div className="grid w-full gap-3 md:hidden">
       {rows.map((row) => (
         <article
           aria-label={`Compact finance row for ${row.date}`}
-          className="grid gap-4 rounded-lg border bg-card p-4 text-card-foreground shadow-sm"
+          className="grid w-full gap-4 rounded-lg border bg-card p-4 text-card-foreground shadow-sm"
           key={row.date}
           role="group"
         >
@@ -342,7 +342,7 @@ export function FinanceTable({
   title,
 }: FinanceTableProps) {
   return (
-    <section className={cn("grid gap-3", className)} aria-label={title}>
+    <section className={cn("grid w-full min-w-0 gap-3", className)} aria-label={title}>
       <DesktopTable
         dayActions={dayActions}
         emptyMessage={emptyMessage}

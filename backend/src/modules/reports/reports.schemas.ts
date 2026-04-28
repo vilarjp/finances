@@ -88,7 +88,7 @@ export type HomeReportResponse = {
   currentMonth: string;
   previousMonth: string;
   currentDayRow: FinanceRowResponse;
-  threeDayRows: FinanceRowResponse[];
+  fiveDayRows: FinanceRowResponse[];
   currentMonthIncomeByCategory: CategoryBreakdownItemResponse[];
   currentMonthExpenseByCategory: CategoryBreakdownItemResponse[];
   dailyBalanceSeries: {

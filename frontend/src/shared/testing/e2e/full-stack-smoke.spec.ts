@@ -27,21 +27,26 @@ async function login(page: Page, email: string) {
 }
 
 async function createRecord(page: Page, description: string) {
-  await page.getByRole("button", { name: "Create record" }).click();
+  const effectiveDate =
+    (await page.locator("main time").first().getAttribute("datetime")) ?? "2026-04-26";
+
+  await page.getByRole("button", { name: "New record" }).click();
 
   const editor = page.getByRole("dialog", { name: "Create record" });
 
   await editor.getByLabel("Record description").fill(description);
-  await editor.getByLabel("Effective date").fill("2026-04-26");
+  await editor.getByLabel("Effective date").fill(effectiveDate);
   await editor.getByLabel("Income").check();
   await editor.getByLabel("Value 1 label").fill("Client work");
   await editor.getByLabel("Value 1 amount cents").fill("250000");
   await editor.getByRole("button", { name: "Save record" }).click();
   await expect(page.getByText(`Saved ${description}.`)).toBeVisible();
+
+  return effectiveDate;
 }
 
-function recordsRegion(page: Page): Locator {
-  return page.getByLabel("Records", { exact: true });
+function incomeRecordsForDate(page: Page, date: string): Locator {
+  return page.getByLabel(`Income records for ${date}`);
 }
 
 test("runs a real browser-backend-Mongo smoke workflow", async ({ page }) => {
@@ -50,20 +55,18 @@ test("runs a real browser-backend-Mongo smoke workflow", async ({ page }) => {
   const recordDescription = "Full-stack consulting";
 
   await signUp(page, "Full Stack A", firstUserEmail);
-  await createRecord(page, recordDescription);
+  const recordDate = await createRecord(page, recordDescription);
 
   await page.reload();
-  await expect(recordsRegion(page).getByRole("heading", { name: recordDescription })).toBeVisible();
+  await expect(incomeRecordsForDate(page, recordDate).getByText(recordDescription)).toBeVisible();
 
   await logout(page);
   await signUp(page, "Full Stack B", secondUserEmail);
 
-  await expect(recordsRegion(page).getByRole("heading", { name: recordDescription })).toHaveCount(
-    0,
-  );
+  await expect(incomeRecordsForDate(page, recordDate).getByText(recordDescription)).toHaveCount(0);
 
   await logout(page);
   await login(page, firstUserEmail);
 
-  await expect(recordsRegion(page).getByRole("heading", { name: recordDescription })).toBeVisible();
+  await expect(incomeRecordsForDate(page, recordDate).getByText(recordDescription)).toBeVisible();
 });

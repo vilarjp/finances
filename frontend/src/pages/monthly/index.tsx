@@ -16,12 +16,10 @@ import type { FinanceRow, MonthlyReport, ReportRecord } from "@entities/report";
 import {
   pasteRecord,
   RecordEditor,
-  type RecurringValueControlsRenderProps,
   type RecordMutationPayload,
   updateRecord,
   useRecordClipboard,
 } from "@features/records";
-import { RecurringTagValueEditor } from "@features/recurring-tags";
 import { FinanceTable } from "@widgets/finance-table";
 import { getApiErrorMessage } from "@shared/api/errors";
 import { formatFinanceMonth, getFinanceMonthDayCount } from "@shared/lib/date";
@@ -151,24 +149,6 @@ function getRecordDescription(record: ReportRecord) {
 
 function getErrorMessage(error: unknown) {
   return getApiErrorMessage(error, "Monthly view request failed.");
-}
-
-function renderRecurringValueControls({
-  disabled,
-  labelPrefix,
-  onValueChange,
-  value,
-}: RecurringValueControlsRenderProps) {
-  return (
-    <RecurringTagValueEditor
-      disabled={Boolean(disabled)}
-      labelPrefix={labelPrefix}
-      onValueChange={onValueChange}
-      showAmountInput={false}
-      surface="inline"
-      value={value}
-    />
-  );
 }
 
 export function MonthlyPage() {
@@ -310,7 +290,6 @@ export function MonthlyPage() {
     <main className="mx-auto grid w-full max-w-7xl gap-6 overflow-x-clip px-4 py-8">
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
         <div>
-          <p className="text-sm font-medium text-primary">Month planner</p>
           <h1 className="mt-1 text-3xl font-semibold tracking-normal">Monthly view</h1>
           <h2 className="mt-2 text-xl font-semibold text-muted-foreground">{monthLabel}</h2>
         </div>
@@ -469,7 +448,6 @@ export function MonthlyPage() {
               onCancel={() => setEditorState(null)}
               onSubmit={handleEditorSubmit}
               record={editorState.record}
-              renderRecurringValueControls={renderRecurringValueControls}
               serverError={editorError}
             />
           ) : null}

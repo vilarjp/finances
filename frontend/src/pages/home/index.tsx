@@ -1,11 +1,4 @@
-import {
-  CalendarDays,
-  ChartLine,
-  ChartPie,
-  TrendingDown,
-  TrendingUp,
-  WalletCards,
-} from "lucide-react";
+import { CalendarDays, ChartLine, ChartPie, TrendingDown, TrendingUp } from "lucide-react";
 import { Children, useMemo, type ReactNode } from "react";
 import {
   CartesianGrid,
@@ -23,9 +16,6 @@ import {
 import { useHomeReportQuery } from "@entities/report";
 import type { CategoryBreakdownItem, HomeReport } from "@entities/report";
 import { FinanceTable } from "@widgets/finance-table";
-import { CategoryManager } from "@features/categories";
-import { RecurringTagValueEditor } from "@features/recurring-tags";
-import { RecordWorkspace, type RecurringValueControlsRenderProps } from "@features/records";
 import { getApiErrorMessage } from "@shared/api/errors";
 import { formatFinanceDate } from "@shared/lib/date";
 import { formatMoneyCents } from "@shared/lib/money";
@@ -379,18 +369,18 @@ function DailyBalanceChart({ report }: { report: HomeReport }) {
               />
               <Tooltip content={<MoneyTooltip />} />
               <Line
-                dataKey="currentBalanceCents"
-                dot={false}
-                name={currentMonthLabel}
-                stroke="var(--finance-income)"
-                strokeWidth={3}
-                type="monotone"
-              />
-              <Line
                 dataKey="previousBalanceCents"
                 dot={false}
                 name={previousMonthLabel}
                 stroke="var(--finance-daily)"
+                strokeWidth={3}
+                type="monotone"
+              />
+              <Line
+                dataKey="currentBalanceCents"
+                dot={false}
+                name={currentMonthLabel}
+                stroke="var(--finance-income)"
                 strokeWidth={3}
                 type="monotone"
               />
@@ -403,14 +393,14 @@ function DailyBalanceChart({ report }: { report: HomeReport }) {
         )}
       </div>
 
-      <div className="flex flex-wrap gap-3 text-sm">
-        <span className="inline-flex items-center gap-2 rounded-md border px-3 py-2">
-          <span aria-hidden="true" className="size-2 rounded-full bg-finance-income" />
-          {currentMonthLabel}
-        </span>
+      <div aria-label="Daily balance months" className="flex flex-wrap gap-3 text-sm">
         <span className="inline-flex items-center gap-2 rounded-md border px-3 py-2">
           <span aria-hidden="true" className="size-2 rounded-full bg-finance-daily" />
           {previousMonthLabel}
+        </span>
+        <span className="inline-flex items-center gap-2 rounded-md border px-3 py-2">
+          <span aria-hidden="true" className="size-2 rounded-full bg-finance-income" />
+          {currentMonthLabel}
         </span>
       </div>
     </ChartCard>
@@ -445,40 +435,14 @@ function HomeDashboard({ report }: { report: HomeReport }) {
         <DailyBalanceChart report={report} />
       </ResponsiveCarousel>
 
-      <ResponsiveCarousel
-        desktopClassName="md:grid md:grid-cols-[minmax(0,3fr)_minmax(0,7fr)]"
-        label="Finance tables"
-      >
+      <section aria-label="Finance tables" className="w-full min-w-0">
         <FinanceTable
-          emptyMessage="No records for today yet."
-          rows={[report.currentDayRow]}
-          title="Today"
+          emptyMessage="No records in this five-day window yet."
+          rows={report.fiveDayRows}
+          title="Today + 4 days"
         />
-        <FinanceTable
-          emptyMessage="No records in the next two days yet."
-          rows={report.threeDayRows}
-          title="Next 2 days"
-        />
-      </ResponsiveCarousel>
+      </section>
     </div>
-  );
-}
-
-function renderRecurringValueControls({
-  disabled,
-  labelPrefix,
-  onValueChange,
-  value,
-}: RecurringValueControlsRenderProps) {
-  return (
-    <RecurringTagValueEditor
-      disabled={Boolean(disabled)}
-      labelPrefix={labelPrefix}
-      onValueChange={onValueChange}
-      showAmountInput={false}
-      surface="inline"
-      value={value}
-    />
   );
 }
 
@@ -490,7 +454,6 @@ export function HomePage() {
     <main className="mx-auto grid w-full max-w-7xl gap-8 overflow-x-clip px-4 py-8">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-sm font-medium text-primary">Today</p>
           <h1 className="mt-1 text-3xl font-semibold tracking-normal">Personal Finance</h1>
         </div>
         <div className="inline-flex w-fit items-center gap-2 rounded-md border bg-card px-3 py-2 text-sm text-card-foreground shadow-sm">
@@ -512,19 +475,6 @@ export function HomePage() {
       ) : null}
 
       {homeReportQuery.data ? <HomeDashboard report={homeReportQuery.data} /> : null}
-
-      <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
-        <RecordWorkspace renderRecurringValueControls={renderRecurringValueControls} />
-
-        <aside className="grid content-start gap-3">
-          <CategoryManager />
-          <div className="rounded-lg border bg-card p-5 text-card-foreground shadow-sm">
-            <WalletCards aria-hidden="true" className="mb-6 size-6 text-accent-foreground" />
-            <p className="text-sm font-medium text-muted-foreground">Next slice</p>
-            <p className="mt-2 text-2xl font-semibold">Monthly view</p>
-          </div>
-        </aside>
-      </section>
     </main>
   );
 }

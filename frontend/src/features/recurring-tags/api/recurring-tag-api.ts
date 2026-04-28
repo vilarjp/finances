@@ -1,5 +1,5 @@
 import type { RecurringTag, RecurringTagPropagation } from "@entities/recurring-tag";
-import { apiPatch, apiPost } from "@shared/api/http-client";
+import { apiDelete, apiPatch, apiPost } from "@shared/api/http-client";
 
 import type {
   CreateRecurringTagFormValues,
@@ -50,4 +50,10 @@ export async function updateRecurringTagAmount(
   }
 
   return response.data;
+}
+
+export async function deleteRecurringTag(tagId: string) {
+  await apiDelete<void>(`/recurring-tags/${tagId}`, {
+    expectJson: false,
+  });
 }

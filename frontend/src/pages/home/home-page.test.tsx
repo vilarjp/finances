@@ -110,7 +110,7 @@ function buildHomeReport(): HomeReport {
     currentMonth: "2026-04",
     previousMonth: "2026-03",
     currentDayRow: buildFinanceRow(),
-    threeDayRows: [
+    fiveDayRows: [
       buildFinanceRow(),
       buildFinanceRow({
         date: "2026-04-27",
@@ -124,6 +124,26 @@ function buildHomeReport(): HomeReport {
       }),
       buildFinanceRow({
         date: "2026-04-28",
+        incomeRecords: [],
+        fixedExpenseRecords: [],
+        dailyExpenseRecords: [],
+        incomeTotalCents: 0,
+        fixedExpenseTotalCents: 0,
+        dailyExpenseTotalCents: 0,
+        balanceCents: 0,
+      }),
+      buildFinanceRow({
+        date: "2026-04-29",
+        incomeRecords: [],
+        fixedExpenseRecords: [],
+        dailyExpenseRecords: [],
+        incomeTotalCents: 0,
+        fixedExpenseTotalCents: 0,
+        dailyExpenseTotalCents: 0,
+        balanceCents: 0,
+      }),
+      buildFinanceRow({
+        date: "2026-04-30",
         incomeRecords: [],
         fixedExpenseRecords: [],
         dailyExpenseRecords: [],
@@ -217,11 +237,23 @@ it("renders the report-driven home dashboard sections", async () => {
   expect(within(chartCarousel).getByText("Expenses by category")).toBeInTheDocument();
   expect(within(chartCarousel).getByText("Salary")).toBeInTheDocument();
   expect(within(chartCarousel).getByText("Rent")).toBeInTheDocument();
-  expect(within(chartCarousel).getByText("April 2026")).toBeInTheDocument();
-  expect(within(chartCarousel).getByText("March 2026")).toBeInTheDocument();
+  const balanceLegend = within(chartCarousel).getByLabelText("Daily balance months");
+  expect(
+    within(balanceLegend)
+      .getAllByText(/2026/u)
+      .map((item) => item.textContent),
+  ).toEqual(["March 2026", "April 2026"]);
 
-  expect(within(tableCarousel).getByRole("table", { name: "Today" })).toBeInTheDocument();
-  expect(within(tableCarousel).getByRole("table", { name: "Next 2 days" })).toBeInTheDocument();
+  expect(within(tableCarousel).queryByRole("table", { name: "Today" })).not.toBeInTheDocument();
+  expect(within(tableCarousel).getByRole("table", { name: "Today + 4 days" })).toBeInTheDocument();
+  expect(within(tableCarousel).getByRole("region", { name: "Today + 4 days" })).toHaveClass(
+    "w-full",
+  );
   expect(within(tableCarousel).getAllByText("Salary").length).toBeGreaterThan(0);
   expect(within(tableCarousel).getAllByText("Groceries").length).toBeGreaterThan(0);
+
+  const main = screen.getByRole("main");
+  expect(within(main).queryByText("Finance records")).not.toBeInTheDocument();
+  expect(within(main).queryByRole("heading", { name: "Records" })).not.toBeInTheDocument();
+  expect(within(main).queryByRole("button", { name: "Create record" })).not.toBeInTheDocument();
 });

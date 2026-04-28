@@ -303,10 +303,12 @@ function buildHomeReport(state: FinanceApiState) {
     },
     date: homeDate,
     previousMonth: "2026-03",
-    threeDayRows: [
+    fiveDayRows: [
       buildFinanceRow(homeDate, state),
       buildFinanceRow("2026-04-27", state),
       buildFinanceRow("2026-04-28", state),
+      buildFinanceRow("2026-04-29", state),
+      buildFinanceRow("2026-04-30", state),
     ],
   };
 }
@@ -594,18 +596,8 @@ async function installFinanceApiMock(page: Page, state: FinanceApiState) {
   });
 }
 
-async function setColorInput(locator: Locator, value: string) {
-  await locator.evaluate((element, nextValue) => {
-    const input = element as HTMLInputElement;
-
-    input.value = nextValue;
-    input.dispatchEvent(new Event("input", { bubbles: true }));
-    input.dispatchEvent(new Event("change", { bubbles: true }));
-  }, value);
-}
-
 async function openCreateRecordEditor(page: Page) {
-  await page.getByRole("button", { name: "Create record" }).click();
+  await page.getByRole("button", { name: "New record" }).click();
 
   return page.getByRole("dialog", { name: "Create record" });
 }
@@ -686,14 +678,9 @@ test("creates income, fixed expense, and daily expense records", async ({ page }
   });
 
   await expect(page.getByText("Saved April income.")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "April income" })).toBeVisible();
-
-  const incomeCard = page.locator("article").filter({
-    has: page.getByRole("heading", { name: "April income" }),
-  });
-
-  await expect(incomeCard).toContainText("Salary");
-  await expect(incomeCard).toContainText("Bonus");
+  await expect(page.getByLabel(`Income records for ${homeDate}`)).toContainText("April income");
+  await expect(page.getByLabel(`Income records for ${homeDate}`)).toContainText("Salary");
+  await expect(page.getByLabel(`Income records for ${homeDate}`)).toContainText("Bonus");
 
   await saveRecordFromEditor(await openCreateRecordEditor(page), {
     classification: "Fixed expense",
@@ -702,12 +689,12 @@ test("creates income, fixed expense, and daily expense records", async ({ page }
   });
 
   await expect(page.getByText("Saved Apartment rent.")).toBeVisible();
-
-  const fixedExpenseCard = page.locator("article").filter({
-    has: page.getByRole("heading", { name: "Apartment rent" }),
-  });
-
-  await expect(fixedExpenseCard).toContainText("Fixed expense");
+  await expect(page.getByLabel(`Fixed expense records for ${homeDate}`)).toContainText(
+    "Apartment rent",
+  );
+  await expect(page.getByLabel(`Fixed expense records for ${homeDate}`)).toContainText(
+    "Fixed expense",
+  );
 
   await saveRecordFromEditor(await openCreateRecordEditor(page), {
     classification: "Daily expense",
@@ -716,43 +703,10 @@ test("creates income, fixed expense, and daily expense records", async ({ page }
   });
 
   await expect(page.getByText("Saved Lunch.")).toBeVisible();
-
-  const dailyExpenseCard = page.locator("article").filter({
-    has: page.getByRole("heading", { name: "Lunch" }),
-  });
-
-  await expect(dailyExpenseCard).toContainText("Daily expense");
-});
-
-test("updates category name and color across the home UI", async ({ page }) => {
-  const category = makeCategory();
-  const state = createFinanceApiState({
-    categories: [category],
-    records: [
-      makeRecord({
-        backgroundColor: "#FEE2E2",
-        description: "Market run",
-        id: "record-market",
-        values: [{ amountCents: 15000, categoryId: category.id, label: "Groceries" }],
-      }),
-    ],
-  });
-
-  await installFinanceApiMock(page, state);
-  await page.goto("/");
-
-  await expect(page.getByRole("region", { name: "Charts" })).toContainText("Food");
-
-  await page.getByRole("combobox", { exact: true, name: "Category" }).selectOption(category.id);
-  await page.getByRole("textbox", { exact: true, name: "Category name" }).fill("Essentials");
-  await setColorInput(page.getByLabel("Background color").nth(1), "#DBEAFE");
-  await page.getByRole("button", { name: "Save category" }).click();
-
-  await expect(page.getByRole("combobox", { exact: true, name: "Category" })).toContainText(
-    "Essentials",
+  await expect(page.getByLabel(`Daily expense records for ${homeDate}`)).toContainText("Lunch");
+  await expect(page.getByLabel(`Daily expense records for ${homeDate}`)).toContainText(
+    "Daily expense",
   );
-  await expect(page.getByRole("region", { name: "Charts" })).toContainText("Essentials");
-  await expect(page.getByRole("region", { name: "Charts" })).not.toContainText("Food");
 });
 
 test("copies a record and pastes it onto another day", async ({ page }) => {
@@ -768,20 +722,17 @@ test("copies a record and pastes it onto another day", async ({ page }) => {
   });
 
   await installFinanceApiMock(page, state);
-  await page.goto("/");
+  await page.goto("/monthly?month=2026-04");
 
   await page.getByRole("button", { name: "Copy Consulting record" }).click();
   await expect(page.getByText("Ready to paste Consulting.")).toBeVisible();
 
-  await page.getByLabel("Paste target date").fill("2026-04-28");
-  await page.getByRole("button", { name: "Paste record" }).click();
+  await page.getByRole("button", { name: "Select 2026-04-28" }).click();
+  await page.getByRole("button", { name: "Paste copied record" }).click();
 
   await expect(page.getByText("Pasted Consulting to 2026-04-28.")).toBeVisible();
-  await expect(
-    page.getByLabel("Records", { exact: true }).getByText("2026-04-28", { exact: true }),
-  ).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Consulting" })).toHaveCount(2);
-  await expect(page.getByLabel("Records", { exact: true }).getByText("Client work")).toHaveCount(2);
+  await expect(page.getByLabel("Income records for 2026-04-28")).toContainText("Consulting");
+  await expect(page.getByLabel("Income records for 2026-04-28")).toContainText("Client work");
 });
 
 test("updates recurring tag amount only for current and future linked records", async ({
@@ -819,27 +770,20 @@ test("updates recurring tag amount only for current and future linked records", 
   });
 
   await installFinanceApiMock(page, state);
-  await page.goto("/");
+  await page.goto("/categories-and-tags");
 
-  await page.getByRole("button", { name: "Edit Future subscription record" }).click();
+  await expect(page.getByRole("heading", { name: "Categories & Recurring tags" })).toBeVisible();
 
-  const editor = page.getByRole("dialog", { name: "Edit record" });
-
-  await editor.getByLabel("Value 1 recurring tag").selectOption(recurringTag.id);
-  await editor.getByLabel("Value 1 amount cents").fill("70000");
-  await editor.getByRole("button", { name: "Update shared tag amount" }).click();
+  await page.getByRole("combobox", { name: "Recurring tag" }).selectOption(recurringTag.id);
+  await page.getByRole("spinbutton", { name: "Shared amount cents" }).fill("70000");
+  await page.getByRole("button", { name: "Update shared amount" }).click();
 
   await expect(page.getByText("Updated 1 value in 1 record.")).toBeVisible();
 
-  const pastRecord = page.locator("article").filter({
-    has: page.getByRole("heading", { name: "Past subscription" }),
-  });
-  const futureRecord = page.locator("article").filter({
-    has: page.getByRole("heading", { name: "Future subscription" }),
-  });
+  await page.goto("/monthly?month=2026-04");
 
-  await expect(pastRecord).toContainText("R$ 500,00");
-  await expect(futureRecord).toContainText("R$ 700,00");
+  await expect(page.getByLabel("Daily expense records for 2026-04-20")).toContainText("R$ 500,00");
+  await expect(page.getByLabel("Daily expense records for 2026-04-28")).toContainText("R$ 700,00");
 });
 
 test("covers home desktop and mobile carousel layouts", async ({ page }) => {
@@ -878,7 +822,7 @@ test("covers home desktop and mobile carousel layouts", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Personal Finance" })).toBeVisible();
   await expect(page.getByRole("region", { name: "Summary cards" })).toContainText("Today's income");
   await expect(page.getByRole("region", { name: "Charts" })).toContainText("Salary");
-  await expect(page.getByRole("table", { name: "Today" })).toBeVisible();
+  await expect(page.getByRole("table", { name: "Today + 4 days" })).toBeVisible();
   await expect
     .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
     .toBeLessThanOrEqual(1280);
@@ -894,10 +838,7 @@ test("covers home desktop and mobile carousel layouts", async ({ page }) => {
     "aria-roledescription",
     "carousel",
   );
-  await expect(page.getByRole("region", { name: "Finance tables" })).toHaveAttribute(
-    "aria-roledescription",
-    "carousel",
-  );
+  await expect(page.getByRole("region", { name: "Today + 4 days" })).toBeVisible();
   await expect
     .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
     .toBeLessThanOrEqual(390);

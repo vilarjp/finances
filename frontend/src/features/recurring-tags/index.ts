@@ -1,5 +1,6 @@
 export {
   createRecurringTag,
+  deleteRecurringTag,
   updateRecurringTag,
   updateRecurringTagAmount,
 } from "./api/recurring-tag-api";
@@ -13,7 +14,4 @@ export {
   type RecurringTagFormValues,
   type UpdateRecurringTagAmountFormValues,
 } from "./model/forms";
-export {
-  RecurringTagValueEditor,
-  type RecurringTagValueEditorValue,
-} from "./ui/recurring-tag-value-editor";
+export { RecurringTagManager } from "./ui/recurring-tag-manager";

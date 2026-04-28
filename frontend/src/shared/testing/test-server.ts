@@ -22,10 +22,12 @@ function buildDefaultHomeReport(): HomeReport {
     currentMonth: "2026-04",
     previousMonth: "2026-03",
     currentDayRow: buildEmptyFinanceRow("2026-04-26"),
-    threeDayRows: [
+    fiveDayRows: [
       buildEmptyFinanceRow("2026-04-26"),
       buildEmptyFinanceRow("2026-04-27"),
       buildEmptyFinanceRow("2026-04-28"),
+      buildEmptyFinanceRow("2026-04-29"),
+      buildEmptyFinanceRow("2026-04-30"),
     ],
     currentMonthIncomeByCategory: [],
     currentMonthExpenseByCategory: [],

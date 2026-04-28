@@ -1,11 +1,13 @@
 import { Plus, Save, Trash2, X } from "lucide-react";
-import { useState, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
+import { useState, type FormEvent, type KeyboardEvent } from "react";
 
 import { CategorySelect } from "@entities/category";
 import type { FinanceRecord } from "@entities/record";
 import { RecurringTagSelect } from "@entities/recurring-tag";
+import { cn } from "@shared/lib/utils";
 import { Button } from "@shared/ui/button";
 import { Input } from "@shared/ui/input";
+import { useModalClose } from "@shared/ui/modal";
 
 import {
   createDefaultRecordFormValues,
@@ -20,22 +22,14 @@ import {
 } from "../model/forms";
 
 type RecordEditorProps = {
+  className?: string;
   defaultDate: string;
+  isModal?: boolean;
   isSubmitting?: boolean;
   onCancel: () => void;
   onSubmit: (payload: RecordMutationPayload) => void;
   record?: FinanceRecord;
-  renderRecurringValueControls?: (props: RecurringValueControlsRenderProps) => ReactNode;
   serverError?: string;
-};
-
-export type RecurringValueControlsRenderProps = {
-  disabled: boolean | undefined;
-  labelPrefix: string;
-  onValueChange: (
-    value: Pick<RecordValueFormValues, "amountCents" | "recurringValueTagId">,
-  ) => void;
-  value: Pick<RecordValueFormValues, "amountCents" | "recurringValueTagId">;
 };
 
 function getInitialValues(record: FinanceRecord | undefined, defaultDate: string) {
@@ -121,7 +115,6 @@ function RecordValueFields({
   index,
   onChange,
   onRemove,
-  renderRecurringValueControls,
   value,
   canRemove,
 }: {
@@ -130,26 +123,9 @@ function RecordValueFields({
   index: number;
   onChange: (value: RecordValueFormValues) => void;
   onRemove: () => void;
-  renderRecurringValueControls?: (props: RecurringValueControlsRenderProps) => ReactNode;
   value: RecordValueFormValues;
 }) {
   const valueNumber = index + 1;
-  const recurringValueControls = renderRecurringValueControls?.({
-    disabled,
-    labelPrefix: `Value ${valueNumber}`,
-    onValueChange: (nextValue) => onChange({ ...value, ...nextValue }),
-    value: {
-      amountCents: value.amountCents,
-      recurringValueTagId: value.recurringValueTagId,
-    },
-  }) ?? (
-    <RecurringTagSelect
-      disabled={disabled}
-      label={`Value ${valueNumber} recurring tag`}
-      onValueChange={(recurringValueTagId) => onChange({ ...value, recurringValueTagId })}
-      value={value.recurringValueTagId}
-    />
-  );
 
   return (
     <fieldset className="grid gap-3 rounded-lg border p-4">
@@ -203,27 +179,35 @@ function RecordValueFields({
           onValueChange={(categoryId) => onChange({ ...value, categoryId })}
           value={value.categoryId}
         />
-        {recurringValueControls}
+        <RecurringTagSelect
+          disabled={disabled}
+          label={`Value ${valueNumber} recurring tag`}
+          onValueChange={(recurringValueTagId) => onChange({ ...value, recurringValueTagId })}
+          value={value.recurringValueTagId}
+        />
       </div>
     </fieldset>
   );
 }
 
 export function RecordEditor({
+  className,
   defaultDate,
+  isModal = false,
   isSubmitting = false,
   onCancel,
   onSubmit,
   record,
-  renderRecurringValueControls,
   serverError,
 }: RecordEditorProps) {
+  const modalClose = useModalClose();
   const [values, setValues] = useState<RecordFormValues>(() =>
     getInitialValues(record, defaultDate),
   );
   const [validationError, setValidationError] = useState("");
   const title = record ? "Edit record" : "Create record";
   const isDisabled = isSubmitting;
+  const closeEditor = isModal && modalClose ? modalClose : onCancel;
 
   const updateValue = (index: number, nextValue: RecordValueFormValues) => {
     setValues({
@@ -262,15 +246,19 @@ export function RecordEditor({
   const handleDialogKeyDown = (event: KeyboardEvent<HTMLElement>) => {
     if (event.key === "Escape") {
       event.preventDefault();
-      onCancel();
+      closeEditor();
     }
   };
 
   return (
     <section
       aria-labelledby="record-editor-title"
-      aria-modal="false"
-      className="rounded-lg border bg-card p-5 text-card-foreground shadow-sm"
+      aria-modal={isModal ? "true" : "false"}
+      className={cn(
+        "rounded-lg border bg-card p-5 text-card-foreground shadow-sm",
+        isModal && "max-h-[calc(100vh-2rem)] overflow-y-auto shadow-xl",
+        className,
+      )}
       onKeyDown={handleDialogKeyDown}
       role="dialog"
     >
@@ -283,7 +271,7 @@ export function RecordEditor({
         </div>
         <Button
           aria-label="Close record editor"
-          onClick={onCancel}
+          onClick={closeEditor}
           size="icon"
           type="button"
           variant="ghost"
@@ -360,7 +348,6 @@ export function RecordEditor({
               key={index}
               onChange={(nextValue) => updateValue(index, nextValue)}
               onRemove={() => removeValue(index)}
-              renderRecurringValueControls={renderRecurringValueControls}
               value={value}
             />
           ))}
@@ -377,7 +364,7 @@ export function RecordEditor({
             <Save aria-hidden="true" />
             Save record
           </Button>
-          <Button disabled={isDisabled} onClick={onCancel} type="button" variant="outline">
+          <Button disabled={isDisabled} onClick={closeEditor} type="button" variant="outline">
             Cancel
           </Button>
         </div>

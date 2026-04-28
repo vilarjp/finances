@@ -15,7 +15,7 @@ const homeReport = {
     dailyExpenseTotalCents: 35000,
     balanceCents: 75000,
   },
-  threeDayRows: [
+  fiveDayRows: [
     {
       date: "2026-04-26",
       incomeRecords: [],
@@ -38,6 +38,26 @@ const homeReport = {
     },
     {
       date: "2026-04-28",
+      incomeRecords: [],
+      fixedExpenseRecords: [],
+      dailyExpenseRecords: [],
+      incomeTotalCents: 0,
+      fixedExpenseTotalCents: 0,
+      dailyExpenseTotalCents: 0,
+      balanceCents: 0,
+    },
+    {
+      date: "2026-04-29",
+      incomeRecords: [],
+      fixedExpenseRecords: [],
+      dailyExpenseRecords: [],
+      incomeTotalCents: 0,
+      fixedExpenseTotalCents: 0,
+      dailyExpenseTotalCents: 0,
+      balanceCents: 0,
+    },
+    {
+      date: "2026-04-30",
       incomeRecords: [],
       fixedExpenseRecords: [],
       dailyExpenseRecords: [],
@@ -276,8 +296,8 @@ test("renders signed-in home dashboard on desktop", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Personal Finance" })).toBeVisible();
   await expect(page.getByRole("region", { name: "Summary cards" })).toContainText("Today's income");
   await expect(page.getByRole("region", { name: "Charts" })).toContainText("Income by category");
-  await expect(page.getByRole("table", { name: "Today" })).toBeVisible();
-  await expect(page.getByRole("table", { name: "Next 2 days" })).toBeVisible();
+  await expect(page.getByRole("table", { exact: true, name: "Today" })).toHaveCount(0);
+  await expect(page.getByRole("table", { name: "Today + 4 days" })).toBeVisible();
   await expect
     .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
     .toBeLessThanOrEqual(1280);
@@ -297,10 +317,7 @@ test("keeps signed-in home dashboard usable on mobile", async ({ page }) => {
     "aria-roledescription",
     "carousel",
   );
-  await expect(page.getByRole("region", { name: "Finance tables" })).toHaveAttribute(
-    "aria-roledescription",
-    "carousel",
-  );
+  await expect(page.getByRole("region", { name: "Today + 4 days" })).toBeVisible();
   await expect
     .poll(() => page.evaluate(() => document.documentElement.scrollWidth))
     .toBeLessThanOrEqual(390);

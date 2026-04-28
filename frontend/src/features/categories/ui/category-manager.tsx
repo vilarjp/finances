@@ -6,6 +6,7 @@ import { CategorySelect, categoriesQueryKey, useCategoriesQuery } from "@entitie
 import type { Category } from "@entities/category";
 import { invalidateFinanceData } from "@entities/record";
 import { getApiErrorMessage } from "@shared/api/errors";
+import { cn } from "@shared/lib/utils";
 import { Button } from "@shared/ui/button";
 import { Input } from "@shared/ui/input";
 
@@ -72,13 +73,17 @@ function CategoryColorInputs({
 }
 
 type CategoryManagerProps = {
+  className?: string;
   onSelectedCategoryChange?: (categoryId: string) => void;
   selectedCategoryId?: string;
+  surface?: "card" | "plain";
 };
 
 export function CategoryManager({
+  className,
   onSelectedCategoryChange,
   selectedCategoryId,
+  surface = "card",
 }: CategoryManagerProps) {
   const queryClient = useQueryClient();
   const categoriesQuery = useCategoriesQuery();
@@ -187,8 +192,15 @@ export function CategoryManager({
   };
 
   return (
-    <section className="rounded-lg border bg-card p-5 text-card-foreground shadow-sm">
-      <div className="mb-5 flex items-center gap-2">
+    <section
+      className={cn(
+        surface === "card"
+          ? "rounded-lg border bg-card p-5 text-card-foreground shadow-sm"
+          : "grid gap-5 text-card-foreground",
+        className,
+      )}
+    >
+      <div className={cn("flex items-center gap-2", surface === "card" && "mb-5")}>
         <Palette aria-hidden="true" className="size-5 text-primary" />
         <h2 className="text-xl font-semibold">Categories</h2>
       </div>

@@ -12,6 +12,7 @@ import {
 import { AuthenticatedLayout } from "@app/authenticated-layout";
 import { useAuth } from "@app/providers/auth-context";
 import { ThemeModeToggle } from "@features/theme-toggle";
+import { CategoriesAndTagsPage } from "@pages/categories-and-tags";
 import { HomePage } from "@pages/home";
 import { LoginPage } from "@pages/login";
 import { MonthlyPage } from "@pages/monthly";
@@ -103,6 +104,7 @@ export function AppRoutes() {
         <Route element={<AuthenticatedLayout />}>
           <Route element={<HomePage />} path="/" />
           <Route element={<MonthlyPage />} path="/monthly" />
+          <Route element={<CategoriesAndTagsPage />} path="/categories-and-tags" />
         </Route>
       </Route>
       <Route element={<PublicLayout />}>
